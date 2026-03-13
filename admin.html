@@ -19,13 +19,26 @@
         .btn-azzera:active { box-shadow: none; }
 
         .refresh { margin-top: 25px; font-size: 14px; cursor: pointer; text-decoration: underline; opacity: 0.7; }
+
+        /* Stili per la schermata di Login */
+        #login-screen { margin-top: 50px; }
+        input[type="password"] { font-size: 24px; padding: 15px; border-radius: 10px; border: none; text-align: center; width: 80%; max-width: 200px; margin-bottom: 20px; font-family: monospace; }
+        .btn-login { background: #3498db; box-shadow: 0 5px 0 #2980b9; padding: 15px; font-size: 20px; max-width: 200px; }
     </style>
 </head>
 <body>
 
-    <div class="panel">
+    <div class="panel" id="login-screen">
+        <h2>Accesso Medico</h2>
+        <p>Inserisci il PIN per continuare</p>
+        <input type="password" id="pin-input" placeholder="****" inputmode="numeric" maxlength="4">
+        <button class="btn-login" onclick="verificaPin()">ACCEDI</button>
+        <p id="errore-pin" style="color: #e74c3c; display: none; margin-top: 15px;">PIN errato. Riprova.</p>
+    </div>
+
+    <div class="panel" id="app-content" style="display: none;">
         <h2>Console Medico</h2>
-        <p>Dott. Giuseppe Martino</p>
+        <p>Dott. GIUSEPPE MARTINO</p>
         <p>Numero attualmente servito:</p>
         <div class="numero-attuale" id="curr">--</div>
         
@@ -40,9 +53,41 @@
     </div>
 
     <script>
-        // Il tuo Worker URL
-        const WORKER_URL = "https://motore-coda.vocidicassino.workers.dev"; 
+        // ==========================================
+        // IMPOSTA QUI IL TUO PIN SEGRETO
+        const PIN_SEGRETO = "1234"; 
+        // ==========================================
 
+        const WORKER_URL = "https://motore-coda.vocidicassino.workers.dev"; 
+        let intervalloAggiornamento;
+
+        // --- SISTEMA DI LOGIN ---
+        function verificaPin() {
+            const pinInserito = document.getElementById('pin-input').value;
+            if (pinInserito === PIN_SEGRETO) {
+                // Pin Corretto: Nascondi login, mostra console
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('app-content').style.display = 'inline-block';
+                
+                // Avvia il caricamento dei dati
+                caricaDati();
+                intervalloAggiornamento = setInterval(caricaDati, 5000);
+            } else {
+                // Pin Errato
+                document.getElementById('errore-pin').style.display = 'block';
+                document.getElementById('pin-input').value = ""; 
+            }
+        }
+
+        // Permette di premere "Invio" sulla tastiera per accedere
+        document.getElementById("pin-input").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                verificaPin();
+            }
+        });
+
+        // --- LOGICA DELLA FILA ---
         async function caricaDati() {
             try {
                 const res = await fetch(`${WORKER_URL}/status`);
@@ -80,9 +125,6 @@
                 alert("Errore durante l'azzeramento.");
             }
         }
-
-        setInterval(caricaDati, 5000);
-        caricaDati();
     </script>
 </body>
 </html>
