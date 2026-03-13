@@ -1,64 +1,33 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Console Medico</title>
+    
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Console Medico</title>
+    
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root { --bg: #0f172a; --panel: rgba(30, 41, 59, 0.8); --neon-green: #10b981; --red: #ef4444; --text: #f8fafc; }
-        
-        body { 
-            font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--text);
-            margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
-            background-image: radial-gradient(circle at top right, #1e293b 0%, #0f172a 100%);
-        }
-
-        .panel { 
-            background: var(--panel); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            padding: 40px; border-radius: 30px; box-shadow: 0 25px 50px rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.05); width: 90%; max-width: 450px; text-align: center;
-        }
-
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--text); margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background-image: radial-gradient(circle at top right, #1e293b 0%, #0f172a 100%); }
+        .panel { background: var(--panel); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); padding: 40px; border-radius: 30px; box-shadow: 0 25px 50px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.05); width: 90%; max-width: 450px; text-align: center; }
         h2 { margin: 0; font-weight: 800; font-size: 28px; letter-spacing: 1px; }
         h3 { margin: 5px 0 20px 0; font-weight: 400; font-size: 16px; color: #94a3b8; }
-
-        /* Login Input */
-        input[type="password"] { 
-            font-family: 'Poppins', sans-serif; font-size: 32px; font-weight: 800; text-align: center;
-            letter-spacing: 8px; width: 100%; max-width: 250px; padding: 15px; margin: 20px 0;
-            background: rgba(0,0,0,0.2); border: 2px solid #334155; color: white; border-radius: 15px; outline: none; transition: border 0.3s;
-        }
+        input[type="password"] { font-family: 'Poppins', sans-serif; font-size: 32px; font-weight: 800; text-align: center; letter-spacing: 8px; width: 100%; max-width: 250px; padding: 15px; margin: 20px 0; background: rgba(0,0,0,0.2); border: 2px solid #334155; color: white; border-radius: 15px; outline: none; transition: border 0.3s; }
         input[type="password"]:focus { border-color: var(--neon-green); }
-
-        /* Numero Neon */
-        .numero-attuale { 
-            font-size: 120px; font-weight: 800; color: var(--neon-green); 
-            line-height: 1; margin: 20px 0; 
-            text-shadow: 0 0 30px rgba(16, 185, 129, 0.4); 
-        }
-
+        .numero-attuale { font-size: 120px; font-weight: 800; color: var(--neon-green); line-height: 1; margin: 20px 0; text-shadow: 0 0 30px rgba(16, 185, 129, 0.4); }
         .stats { background: rgba(0,0,0,0.2); padding: 15px; border-radius: 15px; font-size: 16px; font-weight: 600; color: #cbd5e1; margin-bottom: 30px; }
-
-        /* Bottoni Console */
-        button { 
-            font-family: 'Poppins', sans-serif; border: none; padding: 20px; border-radius: 20px; 
-            font-size: 20px; font-weight: 800; cursor: pointer; width: 100%; color: white;
-            transition: all 0.2s ease; margin-bottom: 15px;
-        }
+        button { font-family: 'Poppins', sans-serif; border: none; padding: 20px; border-radius: 20px; font-size: 20px; font-weight: 800; cursor: pointer; width: 100%; color: white; transition: all 0.2s ease; margin-bottom: 15px; }
         button:active { transform: scale(0.96); }
-
         .btn-chiama { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); box-shadow: 0 10px 20px rgba(239, 68, 68, 0.2); }
         .btn-chiama:hover { box-shadow: 0 15px 25px rgba(239, 68, 68, 0.4); }
-
         .row-buttons { display: flex; gap: 15px; }
         .btn-azzera { background: #334155; font-size: 16px; box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
         .btn-pin { background: #eab308; color: #422006; font-size: 16px; box-shadow: 0 10px 20px rgba(234, 179, 8, 0.2); }
-
         .btn-login { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); margin-top: 10px; }
     </style>
 </head>
@@ -76,13 +45,9 @@
     <div class="panel" id="app-content" style="display: none;">
         <h2>Pannello di Controllo</h2>
         <h3>Gestione Fila</h3>
-        
         <div class="numero-attuale" id="curr">--</div>
-        
         <div class="stats" id="info-coda">Sincronizzazione...</div>
-
         <button class="btn-chiama" onclick="prossimo()">🔊 CHIAMA PROSSIMO</button>
-        
         <div class="row-buttons">
             <button class="btn-azzera" onclick="azzera()">🔄 Azzera Fila</button>
             <button class="btn-pin" onclick="cambiaPin()">⚙️ PIN</button>
@@ -146,9 +111,10 @@
                 document.getElementById('curr').innerText = data.attuale; caricaDati();
             } catch (e) {}
         }
-    <script>
+
+        // --- REGISTRAZIONE MOTORE APP SCARICABILE ---
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
+            navigator.serviceWorker.register('sw.js').catch(err => console.log('SW Error:', err));
         }
     </script>
 </body>
