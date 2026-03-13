@@ -5,12 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Eliminacode Medico - Marconeri70</title>
     <style>
-        :root {
-            --primary: #2c3e50;
-            --accent: #3498db;
-            --success: #27ae60;
-            --danger: #e74c3c;
-        }
+        :root { --primary: #2c3e50; --accent: #3498db; --success: #27ae60; --danger: #e74c3c; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding: 20px; background: #f4f7f6; color: var(--primary); }
         .card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); display: inline-block; width: 100%; max-width: 400px; }
         .numero-attuale { font-size: 72px; font-weight: bold; color: var(--danger); margin: 10px 0; }
@@ -22,7 +17,6 @@
     </style>
 </head>
 <body>
-
     <div class="card">
         <h2 style="margin-top:0;">Studio Medico</h2>
         <p>Dott. Giuseppe Martino</p>
@@ -46,34 +40,57 @@
     <p class="footer">Link App: marconeri70.github.io/eliminacode-app/</p>
 
     <script>
-        // --- CONFIGURAZIONE ---
-        // Sostituisci questo URL con l'indirizzo reale del tuo Cloudflare Worker una volta creato
+        // Il tuo Worker su Cloudflare (già configurato!)
         const WORKER_URL = "https://motore-coda.vocidicassino.workers.dev"; 
+        
+        let numeroPrecedente = -1; // Memoria per capire se il numero è andato avanti
 
-        // Al caricamento, controlla se il paziente ha già un numero salvato
         window.onload = () => {
             const savedNumber = localStorage.getItem('paziente_ticket');
             if (savedNumber) {
                 mostraStatoPaziente(savedNumber);
             }
             aggiornaNumeroCorrente();
-            // Controlla aggiornamenti ogni 5 secondi
-            setInterval(aggiornaNumeroCorrente, 5000);
+            setInterval(aggiornaNumeroCorrente, 5000); // Controlla aggiornamenti ogni 5 secondi
         };
 
-        // Funzione per leggere il numero che sta venendo servito ora
+        // Genera un suono tipo "Ding!" dal telefono
+        function suonaCampanello() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = 'sine'; // Suono morbido
+                osc.frequency.setValueAtTime(880, ctx.currentTime); // Nota La
+                gain.gain.setValueAtTime(0.5, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5); // Sfuma il suono
+                osc.start();
+                osc.stop(ctx.currentTime + 0.5);
+            } catch(e) {
+                console.log("Audio non supportato dal browser");
+            }
+        }
+
         async function aggiornaNumeroCorrente() {
             try {
                 const res = await fetch(`${WORKER_URL}/status`);
                 const data = await res.json();
+                
+                // Se il numero è maggiore di quello in memoria, suona il campanello!
+                if (numeroPrecedente !== -1 && data.attuale > numeroPrecedente) {
+                    suonaCampanello();
+                }
+                
+                // Aggiorniamo la memoria e lo schermo
+                numeroPrecedente = data.attuale;
                 document.getElementById('current-display').innerText = data.attuale || 0;
             } catch (e) {
-                console.log("Errore aggiornamento (Worker non ancora attivo)");
-                document.getElementById('current-display').innerText = "0";
+                console.log("Errore aggiornamento dati");
             }
         }
 
-        // Funzione per richiedere un nuovo numero
         async function prendiNumero() {
             try {
                 const res = await fetch(`${WORKER_URL}/join`, { method: 'POST' });
@@ -82,11 +99,11 @@
                 const numeroAssegnato = data.tuoTurno;
                 localStorage.setItem('paziente_ticket', numeroAssegnato);
                 mostraStatoPaziente(numeroAssegnato);
+                
+                // Un piccolo "ding" di conferma quando si prende il numero
+                suonaCampanello();
             } catch (e) {
-                // Simulazione per test locale se il worker non esiste ancora
-                alert("Connessione al server... In modalità test ti assegno il numero 1.");
-                localStorage.setItem('paziente_ticket', 1);
-                mostraStatoPaziente(1);
+                alert("Errore di connessione. Riprova.");
             }
         }
 
