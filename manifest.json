@@ -2,7 +2,7 @@
   "name": "Console - Dott. Martino",
   "short_name": "Fila Studio",
   "display": "standalone",
-  "start_url": ".",
+  "start_url": "admin.html",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
   "icons": [
