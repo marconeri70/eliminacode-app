@@ -8,7 +8,6 @@
     <style>
         :root { --primary: #1e293b; --accent: #0ea5e9; --success: #10b981; --danger: #ef4444; }
         
-        /* Sfondo animato rilassante */
         body { 
             font-family: 'Poppins', sans-serif; 
             margin: 0; padding: 20px; min-height: 100vh; 
@@ -20,48 +19,50 @@
         }
         @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 
-        /* Effetto Vetro (Glassmorphism) */
         .card { 
-            background: rgba(255, 255, 255, 0.7); 
-            backdrop-filter: blur(15px); 
-            -webkit-backdrop-filter: blur(15px);
-            padding: 40px 30px; 
-            border-radius: 30px; 
-            box-shadow: 0 20px 40px rgba(0,0,0,0.05); 
+            background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            padding: 40px 30px; border-radius: 30px; box-shadow: 0 20px 40px rgba(0,0,0,0.05); 
             border: 1px solid rgba(255,255,255,0.8);
             width: 100%; max-width: 400px; text-align: center;
-            transform: translateY(0); transition: all 0.3s ease;
         }
 
         h2 { margin: 0; font-weight: 800; font-size: 28px; color: #0f172a; }
         h3 { margin: 5px 0 25px 0; font-weight: 600; font-size: 16px; color: #64748b; letter-spacing: 1px; }
 
-        /* Numeri animati */
         .numero-attuale { 
             font-size: 85px; font-weight: 800; color: var(--danger); 
-            margin: 10px 0; line-height: 1;
-            text-shadow: 0 10px 20px rgba(239, 68, 68, 0.2);
+            margin: 10px 0; line-height: 1; text-shadow: 0 10px 20px rgba(239, 68, 68, 0.2);
             animation: pulse 2s infinite;
         }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
 
-        .info-box { background: rgba(255,255,255,0.9); padding: 20px; border-radius: 20px; margin: 30px 0; box-shadow: inset 0 2px 10px rgba(0,0,0,0.02); }
-        .tuo-numero { font-size: 45px; font-weight: 800; color: var(--accent); }
+        .info-box { 
+            background: rgba(255,255,255,0.9); padding: 20px; border-radius: 20px; margin: 30px 0; 
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.02); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+        }
+        .tuo-numero { font-size: 45px; font-weight: 800; color: var(--accent); transition: all 0.3s ease; }
 
-        /* Bottone Premium */
+        /* --- STILE SPECIALE: QUANDO È IL TUO TURNO --- */
+        .turno-attivo {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+            transform: scale(1.08);
+            box-shadow: 0 15px 30px rgba(16, 185, 129, 0.4) !important;
+            animation: pulseTurno 1.5s infinite;
+        }
+        .turno-attivo #info-box-title { color: rgba(255,255,255,0.9) !important; }
+        .turno-attivo .tuo-numero { color: white !important; font-size: 65px; }
+        @keyframes pulseTurno { 0% { transform: scale(1.05); } 50% { transform: scale(1.1); } 100% { transform: scale(1.05); } }
+
         button { 
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: white; border: none; padding: 20px 30px; border-radius: 50px; 
             font-size: 18px; font-weight: 600; letter-spacing: 1px; cursor: pointer; 
-            width: 100%; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
-            transition: all 0.3s ease; font-family: 'Poppins', sans-serif;
+            width: 100%; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3); transition: all 0.3s ease; 
         }
-        button:hover { transform: translateY(-3px); box-shadow: 0 15px 25px rgba(16, 185, 129, 0.4); }
         button:active { transform: translateY(2px); box-shadow: 0 5px 10px rgba(16, 185, 129, 0.3); }
 
         .footer { margin-top: 30px; font-size: 12px; color: #94a3b8; font-weight: 600; }
 
-        /* Popup Modale Elegante */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(5px); align-items: center; justify-content: center; z-index: 1000; }
         .modal-box { background: white; padding: 30px; border-radius: 24px; text-align: center; width: 85%; max-width: 320px; box-shadow: 0 25px 50px rgba(0,0,0,0.2); animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .modal-box p { font-size: 16px; font-weight: 600; color: var(--primary); margin-bottom: 25px; line-height: 1.5; }
@@ -83,11 +84,11 @@
         </div>
 
         <div id="status-section" style="display:none;">
-            <div class="info-box">
-                <p style="margin: 0; color: #64748b; font-size: 14px; font-weight: 600;">Il tuo turno è il numero</p>
+            <div class="info-box" id="info-box-container">
+                <p id="info-box-title" style="margin: 0; color: #64748b; font-size: 14px; font-weight: 600;">Il tuo turno è il numero</p>
                 <div class="tuo-numero" id="my-number-display">--</div>
             </div>
-            <p id="wait-message" style="font-size: 14px; font-weight: 600; color: #475569;">L'app si aggiorna da sola.<br>Attendi il tuo turno.</p>
+            <p id="wait-message" style="font-size: 14px; font-weight: 600; color: #475569; transition: all 0.3s;">L'app si aggiorna da sola.<br>Attendi il tuo turno.</p>
         </div>
     </div>
 
@@ -111,10 +112,7 @@
             setInterval(aggiornaNumeroCorrente, 5000); 
         };
 
-        function mostraModal(messaggio) {
-            document.getElementById('modal-text').innerText = messaggio;
-            document.getElementById('custom-modal').style.display = 'flex';
-        }
+        function mostraModal(messaggio) { document.getElementById('modal-text').innerText = messaggio; document.getElementById('custom-modal').style.display = 'flex'; }
         function chiudiModal() { document.getElementById('custom-modal').style.display = 'none'; }
 
         function suonaCampanello() {
@@ -131,26 +129,61 @@
 
         async function aggiornaNumeroCorrente() {
             try {
-                const res = await fetch(`${WORKER_URL}/status`); const data = await res.json();
+                const res = await fetch(`${WORKER_URL}/status`); 
+                const data = await res.json();
+                
                 if (numeroPrecedente !== -1 && data.attuale > numeroPrecedente) suonaCampanello();
                 numeroPrecedente = data.attuale;
                 document.getElementById('current-display').innerText = data.attuale || 0;
 
                 const savedNumber = localStorage.getItem('paziente_ticket');
+                
+                // Controllo Azzeramento
                 if (savedNumber && data.ultimoAssegnato < parseInt(savedNumber)) {
                     localStorage.removeItem('paziente_ticket'); numeroPrecedente = -1;
                     document.getElementById('status-section').style.display = 'none';
                     document.getElementById('registration-section').style.display = 'block';
                     mostraModal("La fila è ripartita da zero. Prendi un nuovo numero per il turno attuale.");
+                    return; // Ferma qui se è stato azzerato
+                }
+
+                // --- MAGIA: CONTROLLO SE È IL TUO TURNO ---
+                if (savedNumber) {
+                    const mioNumero = parseInt(savedNumber);
+                    const infoBox = document.getElementById('info-box-container');
+                    const waitMsg = document.getElementById('wait-message');
+
+                    if (data.attuale === mioNumero) {
+                        // È IL SUO TURNO!
+                        infoBox.classList.add('turno-attivo');
+                        waitMsg.innerHTML = "È ORA IL TUO TURNO!<br>Puoi entrare in ambulatorio.";
+                        waitMsg.style.color = "var(--success)";
+                        waitMsg.style.fontSize = "18px";
+                    } else if (data.attuale > mioNumero) {
+                        // TURNO PASSATO
+                        infoBox.classList.remove('turno-attivo');
+                        waitMsg.innerHTML = "Il tuo turno è passato.";
+                        waitMsg.style.color = "var(--danger)";
+                        waitMsg.style.fontSize = "16px";
+                    } else {
+                        // IN ATTESA
+                        infoBox.classList.remove('turno-attivo');
+                        waitMsg.innerHTML = "L'app si aggiorna da sola.<br>Attendi il tuo turno.";
+                        waitMsg.style.color = "#475569";
+                        waitMsg.style.fontSize = "14px";
+                    }
                 }
             } catch (e) {}
         }
 
         async function prendiNumero() {
             try {
-                const res = await fetch(`${WORKER_URL}/join`, { method: 'POST' }); const data = await res.json();
+                const res = await fetch(`${WORKER_URL}/join`, { method: 'POST' }); 
+                const data = await res.json();
                 localStorage.setItem('paziente_ticket', data.tuoTurno);
-                mostraStatoPaziente(data.tuoTurno); suonaCampanello();
+                mostraStatoPaziente(data.tuoTurno); 
+                suonaCampanello();
+                aggiornaNumeroCorrente(); // Aggiorna subito per vedere se è il primo
             } catch (e) { mostraModal("Errore di connessione. Riprova."); }
         }
 
