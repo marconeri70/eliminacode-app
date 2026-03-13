@@ -15,12 +15,12 @@
         .btn-chiama { background: #e74c3c; box-shadow: 0 5px 0 #c0392b; margin-bottom: 20px; }
         .btn-chiama:active { box-shadow: none; }
         
-        .btn-azzera { background: #7f8c8d; box-shadow: 0 5px 0 #34495e; font-size: 18px; padding: 15px; }
+        .btn-azzera { background: #7f8c8d; box-shadow: 0 5px 0 #34495e; font-size: 18px; padding: 15px; margin-bottom: 15px; }
         .btn-azzera:active { box-shadow: none; }
 
-        .refresh { margin-top: 25px; font-size: 14px; cursor: pointer; text-decoration: underline; opacity: 0.7; }
+        .btn-pin { background: #f39c12; box-shadow: 0 5px 0 #d35400; font-size: 16px; padding: 15px; }
+        .btn-pin:active { box-shadow: none; }
 
-        /* Stili per la schermata di Login */
         #login-screen { margin-top: 50px; }
         input[type="password"] { font-size: 24px; padding: 15px; border-radius: 10px; border: none; text-align: center; width: 80%; max-width: 200px; margin-bottom: 20px; font-family: monospace; }
         .btn-login { background: #3498db; box-shadow: 0 5px 0 #2980b9; padding: 15px; font-size: 20px; max-width: 200px; }
@@ -31,74 +31,86 @@
     <div class="panel" id="login-screen">
         <h2>Accesso Medico</h2>
         <p>Inserisci il PIN per continuare</p>
-        <input type="password" id="pin-input" placeholder="****" inputmode="numeric" maxlength="4">
+        <input type="password" id="pin-input" placeholder="****" inputmode="numeric">
         <button class="btn-login" onclick="verificaPin()">ACCEDI</button>
         <p id="errore-pin" style="color: #e74c3c; display: none; margin-top: 15px;">PIN errato. Riprova.</p>
     </div>
 
     <div class="panel" id="app-content" style="display: none;">
         <h2>Console Medico</h2>
-        <p>Dott. GIUSEPPE MARTINO</p>
         <p>Numero attualmente servito:</p>
         <div class="numero-attuale" id="curr">--</div>
         
-        <div class="stats" id="info-coda">
-            Caricamento dati...
-        </div>
+        <div class="stats" id="info-coda">Caricamento dati...</div>
 
         <button class="btn-chiama" onclick="prossimo()">CHIAMA PROSSIMO</button>
         <button class="btn-azzera" onclick="azzera()">🔄 Azzera Fila</button>
-        
-        <div class="refresh" onclick="caricaDati()">Aggiorna manualmente</div>
+        <button class="btn-pin" onclick="cambiaPin()">⚙️ Cambia PIN</button>
     </div>
 
     <script>
-        // ==========================================
-        // IMPOSTA QUI IL TUO PIN SEGRETO
-        const PIN_SEGRETO = "1234"; 
-        // ==========================================
-
         const WORKER_URL = "https://motore-coda.vocidicassino.workers.dev"; 
-        let intervalloAggiornamento;
+        let pinAttualeSalvato = ""; // Salva il pin in memoria finché la pagina è aperta
 
-        // --- SISTEMA DI LOGIN ---
-        function verificaPin() {
+        async function verificaPin() {
             const pinInserito = document.getElementById('pin-input').value;
-            if (pinInserito === PIN_SEGRETO) {
-                // Pin Corretto: Nascondi login, mostra console
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('app-content').style.display = 'inline-block';
-                
-                // Avvia il caricamento dei dati
-                caricaDati();
-                intervalloAggiornamento = setInterval(caricaDati, 5000);
-            } else {
-                // Pin Errato
-                document.getElementById('errore-pin').style.display = 'block';
-                document.getElementById('pin-input').value = ""; 
+            
+            try {
+                const res = await fetch(`${WORKER_URL}/check-pin`, { 
+                    method: 'POST', 
+                    body: JSON.stringify({ pin: pinInserito }) 
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    pinAttualeSalvato = pinInserito;
+                    document.getElementById('login-screen').style.display = 'none';
+                    document.getElementById('app-content').style.display = 'inline-block';
+                    caricaDati();
+                    setInterval(caricaDati, 5000);
+                } else {
+                    document.getElementById('errore-pin').style.display = 'block';
+                    document.getElementById('pin-input').value = ""; 
+                }
+            } catch (e) {
+                alert("Errore di connessione al server.");
             }
         }
 
-        // Permette di premere "Invio" sulla tastiera per accedere
         document.getElementById("pin-input").addEventListener("keypress", function(event) {
-            if (event.key === "Enter") {
-                event.preventDefault();
-                verificaPin();
-            }
+            if (event.key === "Enter") { event.preventDefault(); verificaPin(); }
         });
 
-        // --- LOGICA DELLA FILA ---
+        async function cambiaPin() {
+            const nuovoPin = prompt("Inserisci il NUOVO PIN che vuoi utilizzare:");
+            if (!nuovoPin || nuovoPin.trim() === "") return;
+
+            try {
+                const res = await fetch(`${WORKER_URL}/change-pin`, { 
+                    method: 'POST', 
+                    body: JSON.stringify({ oldPin: pinAttualeSalvato, newPin: nuovoPin }) 
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    pinAttualeSalvato = nuovoPin;
+                    alert("✅ PIN cambiato con successo!");
+                } else {
+                    alert("❌ Errore durante il cambio PIN.");
+                }
+            } catch (e) {
+                alert("Errore di connessione.");
+            }
+        }
+
         async function caricaDati() {
             try {
                 const res = await fetch(`${WORKER_URL}/status`);
                 const data = await res.json();
                 document.getElementById('curr').innerText = data.attuale;
-                
                 const inAttesa = data.ultimoAssegnato - data.attuale;
                 document.getElementById('info-coda').innerText = `Pazienti ancora in attesa: ${inAttesa > 0 ? inAttesa : 0}`;
-            } catch (e) {
-                console.error("Errore di connessione");
-            }
+            } catch (e) {}
         }
 
         async function prossimo() {
@@ -107,23 +119,18 @@
                 const data = await res.json();
                 document.getElementById('curr').innerText = data.attuale;
                 caricaDati(); 
-            } catch (e) {
-                alert("Errore durante l'avanzamento della fila.");
-            }
+            } catch (e) { alert("Errore di connessione."); }
         }
 
         async function azzera() {
-            if (!confirm("⚠️ ATTENZIONE: Sei sicuro di voler azzerare i numeri e ripartire da zero?")) return;
-            
+            if (!confirm("Vuoi davvero azzerare la fila?")) return;
             try {
                 const res = await fetch(`${WORKER_URL}/reset`, { method: 'POST' });
                 const data = await res.json();
                 document.getElementById('curr').innerText = data.attuale;
                 caricaDati();
-                alert("La fila è stata azzerata!");
-            } catch (e) {
-                alert("Errore durante l'azzeramento.");
-            }
+                alert("Fila azzerata.");
+            } catch (e) {}
         }
     </script>
 </body>
