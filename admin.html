@@ -9,16 +9,22 @@
         .panel { background: #34495e; padding: 30px; border-radius: 20px; display: inline-block; width: 90%; max-width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
         .numero-attuale { font-size: 100px; font-weight: bold; color: #2ecc71; margin: 20px 0; }
         .stats { font-size: 18px; margin-bottom: 30px; color: #bdc3c7; }
-        button { background: #e74c3c; color: white; border: none; padding: 25px; border-radius: 15px; font-size: 24px; font-weight: bold; cursor: pointer; width: 100%; box-shadow: 0 5px 0 #c0392b; }
-        button:active { box-shadow: none; transform: translateY(5px); }
-        .refresh { margin-top: 20px; font-size: 14px; cursor: pointer; text-decoration: underline; opacity: 0.7; }
+        button { color: white; border: none; padding: 25px; border-radius: 15px; font-size: 24px; font-weight: bold; cursor: pointer; width: 100%; transition: transform 0.1s; }
+        button:active { transform: translateY(5px); }
+        
+        .btn-chiama { background: #e74c3c; box-shadow: 0 5px 0 #c0392b; margin-bottom: 20px; }
+        .btn-chiama:active { box-shadow: none; }
+        
+        .btn-azzera { background: #7f8c8d; box-shadow: 0 5px 0 #34495e; font-size: 18px; padding: 15px; }
+        .btn-azzera:active { box-shadow: none; }
+
+        .refresh { margin-top: 25px; font-size: 14px; cursor: pointer; text-decoration: underline; opacity: 0.7; }
     </style>
 </head>
 <body>
 
     <div class="panel">
-        <h1>Console Medico</h1>
-        <p>Dott. Giuseppe Martino</p>
+        <h2>Console Medico</h2>
         <p>Numero attualmente servito:</p>
         <div class="numero-attuale" id="curr">--</div>
         
@@ -26,13 +32,14 @@
             Caricamento dati...
         </div>
 
-        <button onclick="prossimo()">CHIAMA PROSSIMO</button>
+        <button class="btn-chiama" onclick="prossimo()">CHIAMA PROSSIMO</button>
+        <button class="btn-azzera" onclick="azzera()">🔄 Azzera Fila</button>
         
         <div class="refresh" onclick="caricaDati()">Aggiorna manualmente</div>
     </div>
 
     <script>
-        // USA LO STESSO URL DEL TUO WORKER
+        // Il tuo Worker URL
         const WORKER_URL = "https://motore-coda.vocidicassino.workers.dev"; 
 
         async function caricaDati() {
@@ -49,21 +56,31 @@
         }
 
         async function prossimo() {
-            // Piccolo controllo di sicurezza per evitare clic accidentali
-            if (!confirm("Vuoi chiamare il prossimo paziente?")) return;
-
             try {
                 const res = await fetch(`${WORKER_URL}/next`, { method: 'POST' });
                 const data = await res.json();
                 document.getElementById('curr').innerText = data.attuale;
-                caricaDati(); // Aggiorna le statistiche
+                caricaDati(); 
             } catch (e) {
                 alert("Errore durante l'avanzamento della fila.");
             }
         }
 
-        // Carica i dati ogni 10 secondi per vedere se arrivano nuovi pazienti
-        setInterval(caricaDati, 10000);
+        async function azzera() {
+            if (!confirm("⚠️ ATTENZIONE: Sei sicuro di voler azzerare i numeri e ripartire da zero?")) return;
+            
+            try {
+                const res = await fetch(`${WORKER_URL}/reset`, { method: 'POST' });
+                const data = await res.json();
+                document.getElementById('curr').innerText = data.attuale;
+                caricaDati();
+                alert("La fila è stata azzerata!");
+            } catch (e) {
+                alert("Errore durante l'azzeramento.");
+            }
+        }
+
+        setInterval(caricaDati, 5000);
         caricaDati();
     </script>
 </body>
