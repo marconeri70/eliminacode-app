@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fila - Dott. GIUSEPPE MARTINO</title>
+    <title>Studio Medico - Dott. GIUSEPPE MARTINO</title>
     <style>
         :root { --primary: #2c3e50; --accent: #3498db; --success: #27ae60; --danger: #e74c3c; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding: 20px; background: #f4f7f6; color: var(--primary); }
@@ -14,12 +14,20 @@
         button { background: var(--success); color: white; border: none; padding: 18px 30px; border-radius: 12px; font-size: 20px; font-weight: bold; cursor: pointer; width: 100%; transition: transform 0.2s; }
         button:active { transform: scale(0.98); }
         .footer { margin-top: 20px; font-size: 12px; color: #7f8c8d; }
+
+        /* --- STILI PER IL NUOVO POPUP PERSONALIZZATO --- */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 1000; }
+        .modal-box { background: white; padding: 25px; border-radius: 15px; text-align: center; width: 80%; max-width: 300px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: fadeIn 0.3s ease; }
+        .modal-box p { font-size: 18px; font-weight: bold; margin-bottom: 20px; color: var(--primary); }
+        .modal-box button { background: var(--accent); padding: 12px 20px; font-size: 18px; width: 100%; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
     <div class="card">
-        <h2 style="margin-top:0;">Studio Medico</h2>
-        <p>Dott. GIUSEPPE MARTINO</p>
+        <h2 style="margin-top:0; margin-bottom: 5px;">Studio Medico</h2>
+        <h3 style="margin-top:0; color: #7f8c8d; font-weight: normal;">Dott. GIUSEPPE MARTINO</h3>
+        
         <p>Attualmente stiamo servendo:</p>
         <div class="numero-attuale" id="current-display">--</div>
         
@@ -37,7 +45,12 @@
         </div>
     </div>
 
-    <p class="footer">Link App: marconeri70.github.io/eliminacode-app/</p>
+    <div id="custom-modal" class="modal-overlay">
+        <div class="modal-box">
+            <p id="modal-text">Messaggio</p>
+            <button onclick="chiudiModal()">Ho capito</button>
+        </div>
+    </div>
 
     <script>
         const WORKER_URL = "https://motore-coda.vocidicassino.workers.dev"; 
@@ -51,6 +64,16 @@
             aggiornaNumeroCorrente();
             setInterval(aggiornaNumeroCorrente, 5000); 
         };
+
+        // --- FUNZIONI PER IL NUOVO POPUP ---
+        function mostraModal(messaggio) {
+            document.getElementById('modal-text').innerText = messaggio;
+            document.getElementById('custom-modal').style.display = 'flex';
+        }
+
+        function chiudiModal() {
+            document.getElementById('custom-modal').style.display = 'none';
+        }
 
         function suonaCampanello() {
             try {
@@ -75,7 +98,6 @@
                 const res = await fetch(`${WORKER_URL}/status`);
                 const data = await res.json();
                 
-                // Suona il campanello se il numero avanza
                 if (numeroPrecedente !== -1 && data.attuale > numeroPrecedente) {
                     suonaCampanello();
                 }
@@ -83,22 +105,17 @@
                 numeroPrecedente = data.attuale;
                 document.getElementById('current-display').innerText = data.attuale || 0;
 
-                // --- LOGICA DI AZZERAMENTO AUTOMATICO ---
                 const savedNumber = localStorage.getItem('paziente_ticket');
                 
-                // Se il paziente ha un numero (es. 5) ma il server dice che l'ultimo assegnato in assoluto è minore (es. 0),
-                // significa che il medico ha resettato il sistema.
                 if (savedNumber && data.ultimoAssegnato < parseInt(savedNumber)) {
-                    // Cancella la memoria
                     localStorage.removeItem('paziente_ticket');
                     numeroPrecedente = -1;
                     
-                    // Riporta l'interfaccia allo stato iniziale
                     document.getElementById('status-section').style.display = 'none';
                     document.getElementById('registration-section').style.display = 'block';
                     
-                    // Avviso gentile (opzionale, ma utile)
-                    alert("La fila è stata azzerata per il nuovo turno.");
+                    // RICHIAMA IL NOSTRO POPUP AL POSTO DI QUELLO DI SISTEMA
+                    mostraModal("La fila è stata azzerata. Se sei in attesa, prendi un nuovo numero.");
                 }
 
             } catch (e) {
@@ -116,7 +133,7 @@
                 mostraStatoPaziente(numeroAssegnato);
                 suonaCampanello();
             } catch (e) {
-                alert("Errore di connessione. Riprova.");
+                mostraModal("Errore di connessione. Riprova tra poco.");
             }
         }
 
