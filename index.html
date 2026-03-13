@@ -3,59 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Eliminacode Medico</title>
+    <title>Eliminacode Medico - Marconeri70</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 20px; background: #f0f4f8; }
-        .card { background: white; padding: 20px; border-radius: 15px; shadow: 0 4px 6px rgba(0,0,0,0.1); display: inline-block; width: 80%; max-width: 400px; }
-        h1 { color: #2c3e50; }
-        .numero-attuale { font-size: 80px; font-weight: bold; color: #e74c3c; margin: 20px 0; }
-        .tuo-numero { font-size: 24px; color: #3498db; }
-        button { background: #2ecc71; color: white; border: none; padding: 15px 30px; border-radius: 10px; font-size: 18px; cursor: pointer; }
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --success: #27ae60;
+            --danger: #e74c3c;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding: 20px; background: #f4f7f6; color: var(--primary); }
+        .card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); display: inline-block; width: 100%; max-width: 400px; }
+        .numero-attuale { font-size: 72px; font-weight: bold; color: var(--danger); margin: 10px 0; }
+        .info-box { background: #ecf0f1; padding: 15px; border-radius: 10px; margin: 20px 0; }
+        .tuo-numero { font-size: 32px; font-weight: bold; color: var(--accent); }
+        button { background: var(--success); color: white; border: none; padding: 18px 30px; border-radius: 12px; font-size: 20px; font-weight: bold; cursor: pointer; width: 100%; transition: transform 0.2s; }
+        button:active { transform: scale(0.98); }
+        .footer { margin-top: 20px; font-size: 12px; color: #7f8c8d; }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <h1>Studio Medico</h1>
-        <p>Stiamo servendo il numero:</p>
-        <div class="numero-attuale" id="current">--</div>
+        <h2 style="margin-top:0;">Studio Medico</h2>
+        <p>Attualmente stiamo servendo:</p>
+        <div class="numero-attuale" id="current-display">--</div>
         
-        <hr>
-        
-        <div id="registration">
-            <p>Non sei ancora in fila?</p>
-            <button onclick="prendiNumero()">Prendi il mio numero</button>
+        <div id="registration-section">
+            <p>Scansiona il QR e prendi il tuo posto:</p>
+            <button onclick="prendiNumero()">PRENDI NUMERO</button>
         </div>
 
-        <div id="status" style="display:none;">
-            <p class="tuo-numero">Il tuo numero è: <b id="myNumber">--</b></p>
-            <p id="wait-msg">Attendi il tuo turno...</p>
+        <div id="status-section" style="display:none;">
+            <div class="info-box">
+                <p>Il tuo turno è il numero:</p>
+                <div class="tuo-numero" id="my-number-display">--</div>
+            </div>
+            <p id="wait-message">Ti avviseremo quando sarà il tuo turno.</p>
         </div>
     </div>
 
+    <p class="footer">Link App: marconeri70.github.io/eliminacode-app/</p>
+
     <script>
-        // Logica simulata (qui andrebbe il collegamento a Cloudflare R2 o Workers)
-        let currentServing = 10; 
-        
-        function aggiornaDisplay() {
-            document.getElementById('current').innerText = currentServing;
+        // --- CONFIGURAZIONE ---
+        // Sostituisci questo URL con l'indirizzo reale del tuo Cloudflare Worker una volta creato
+        const WORKER_URL = "https://tuo-worker.marconeri.workers.dev"; 
+
+        // Al caricamento, controlla se il paziente ha già un numero salvato
+        window.onload = () => {
+            const savedNumber = localStorage.getItem('paziente_ticket');
+            if (savedNumber) {
+                mostraStatoPaziente(savedNumber);
+            }
+            aggiornaNumeroCorrente();
+            // Controlla aggiornamenti ogni 5 secondi
+            setInterval(aggiornaNumeroCorrente, 5000);
+        };
+
+        // Funzione per leggere il numero che sta venendo servito ora
+        async function aggiornaNumeroCorrente() {
+            try {
+                const res = await fetch(`${WORKER_URL}/status`);
+                const data = await res.json();
+                document.getElementById('current-display').innerText = data.attuale || 0;
+            } catch (e) {
+                console.log("Errore aggiornamento (Worker non ancora attivo)");
+                document.getElementById('current-display').innerText = "0";
+            }
         }
 
-        function prendiNumero() {
-            // Simuliamo l'assegnazione di un numero (es. il successivo all'ultimo)
-            const mioNumero = 15; 
-            document.getElementById('myNumber').innerText = mioNumero;
-            document.getElementById('registration').style.display = 'none';
-            document.getElementById('status').style.display = 'block';
+        // Funzione per richiedere un nuovo numero
+        async function prendiNumero() {
+            try {
+                const res = await fetch(`${WORKER_URL}/join`, { method: 'POST' });
+                const data = await res.json();
+                
+                const numeroAssegnato = data.tuoTurno;
+                localStorage.setItem('paziente_ticket', numeroAssegnato);
+                mostraStatoPaziente(numeroAssegnato);
+            } catch (e) {
+                // Simulazione per test locale se il worker non esiste ancora
+                alert("Connessione al server... In modalità test ti assegno il numero 1.");
+                localStorage.setItem('paziente_ticket', 1);
+                mostraStatoPaziente(1);
+            }
         }
 
-        // Aggiorna il numero ogni 5 secondi (simulazione)
-        setInterval(() => {
-            // Qui faresti una "fetch" al tuo file su Cloudflare R2
-            aggiornaDisplay();
-        }, 5000);
-
-        aggiornaDisplay();
+        function mostraStatoPaziente(num) {
+            document.getElementById('my-number-display').innerText = num;
+            document.getElementById('registration-section').style.display = 'none';
+            document.getElementById('status-section').style.display = 'block';
+        }
     </script>
 </body>
 </html>
