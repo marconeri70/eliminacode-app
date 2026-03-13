@@ -19,7 +19,6 @@
 <body>
     <div class="card">
         <h2 style="margin-top:0;">Studio Medico</h2>
-        <p>Dott. Giuseppe Martino</p>
         <p>Attualmente stiamo servendo:</p>
         <div class="numero-attuale" id="current-display">--</div>
         
@@ -40,10 +39,8 @@
     <p class="footer">Link App: marconeri70.github.io/eliminacode-app/</p>
 
     <script>
-        // Il tuo Worker su Cloudflare (già configurato!)
         const WORKER_URL = "https://motore-coda.vocidicassino.workers.dev"; 
-        
-        let numeroPrecedente = -1; // Memoria per capire se il numero è andato avanti
+        let numeroPrecedente = -1;
 
         window.onload = () => {
             const savedNumber = localStorage.getItem('paziente_ticket');
@@ -51,10 +48,9 @@
                 mostraStatoPaziente(savedNumber);
             }
             aggiornaNumeroCorrente();
-            setInterval(aggiornaNumeroCorrente, 5000); // Controlla aggiornamenti ogni 5 secondi
+            setInterval(aggiornaNumeroCorrente, 5000); 
         };
 
-        // Genera un suono tipo "Ding!" dal telefono
         function suonaCampanello() {
             try {
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -62,14 +58,14 @@
                 const gain = ctx.createGain();
                 osc.connect(gain);
                 gain.connect(ctx.destination);
-                osc.type = 'sine'; // Suono morbido
-                osc.frequency.setValueAtTime(880, ctx.currentTime); // Nota La
+                osc.type = 'sine'; 
+                osc.frequency.setValueAtTime(880, ctx.currentTime); 
                 gain.gain.setValueAtTime(0.5, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5); // Sfuma il suono
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5); 
                 osc.start();
                 osc.stop(ctx.currentTime + 0.5);
             } catch(e) {
-                console.log("Audio non supportato dal browser");
+                console.log("Audio non supportato");
             }
         }
 
@@ -78,14 +74,32 @@
                 const res = await fetch(`${WORKER_URL}/status`);
                 const data = await res.json();
                 
-                // Se il numero è maggiore di quello in memoria, suona il campanello!
+                // Suona il campanello se il numero avanza
                 if (numeroPrecedente !== -1 && data.attuale > numeroPrecedente) {
                     suonaCampanello();
                 }
                 
-                // Aggiorniamo la memoria e lo schermo
                 numeroPrecedente = data.attuale;
                 document.getElementById('current-display').innerText = data.attuale || 0;
+
+                // --- LOGICA DI AZZERAMENTO AUTOMATICO ---
+                const savedNumber = localStorage.getItem('paziente_ticket');
+                
+                // Se il paziente ha un numero (es. 5) ma il server dice che l'ultimo assegnato in assoluto è minore (es. 0),
+                // significa che il medico ha resettato il sistema.
+                if (savedNumber && data.ultimoAssegnato < parseInt(savedNumber)) {
+                    // Cancella la memoria
+                    localStorage.removeItem('paziente_ticket');
+                    numeroPrecedente = -1;
+                    
+                    // Riporta l'interfaccia allo stato iniziale
+                    document.getElementById('status-section').style.display = 'none';
+                    document.getElementById('registration-section').style.display = 'block';
+                    
+                    // Avviso gentile (opzionale, ma utile)
+                    alert("La fila è stata azzerata per il nuovo turno.");
+                }
+
             } catch (e) {
                 console.log("Errore aggiornamento dati");
             }
@@ -99,8 +113,6 @@
                 const numeroAssegnato = data.tuoTurno;
                 localStorage.setItem('paziente_ticket', numeroAssegnato);
                 mostraStatoPaziente(numeroAssegnato);
-                
-                // Un piccolo "ding" di conferma quando si prende il numero
                 suonaCampanello();
             } catch (e) {
                 alert("Errore di connessione. Riprova.");
