@@ -7,41 +7,99 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #1e293b; --accent: #0ea5e9; --success: #10b981; --danger: #ef4444; }
-        body { font-family: 'Poppins', sans-serif; margin: 0; padding: 20px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(-45deg, #e0f2fe, #bae6fd, #f0fdf4, #e0f2fe); background-size: 400% 400%; animation: gradientBG 15s ease infinite; color: var(--primary); }
+        
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            margin: 0; padding: 20px; min-height: 100vh; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: linear-gradient(-45deg, #e0f2fe, #bae6fd, #f0fdf4, #e0f2fe);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: var(--primary);
+        }
         @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-        .card { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); padding: 40px 30px; border-radius: 30px; box-shadow: 0 20px 40px rgba(0,0,0,0.05); border: 1px solid rgba(255,255,255,0.8); width: 100%; max-width: 400px; text-align: center; }
-        .numero-attuale { font-size: 85px; font-weight: 800; color: var(--danger); margin: 10px 0; animation: pulse 2s infinite; }
+
+        .card { 
+            background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            padding: 40px 30px; border-radius: 30px; box-shadow: 0 20px 40px rgba(0,0,0,0.05); 
+            border: 1px solid rgba(255,255,255,0.8);
+            width: 100%; max-width: 400px; text-align: center;
+        }
+
+        h2 { margin: 0; font-weight: 800; font-size: 28px; color: #0f172a; }
+        h3 { margin: 5px 0 25px 0; font-weight: 600; font-size: 16px; color: #64748b; letter-spacing: 1px; }
+
+        .numero-attuale { 
+            font-size: 85px; font-weight: 800; color: var(--danger); 
+            margin: 10px 0; line-height: 1; text-shadow: 0 10px 20px rgba(239, 68, 68, 0.2);
+            animation: pulse 2s infinite;
+        }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
-        .info-box { background: rgba(255,255,255,0.9); padding: 20px; border-radius: 20px; margin: 30px 0; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .tuo-numero { font-size: 45px; font-weight: 800; color: var(--accent); }
-        .turno-attivo { background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important; transform: scale(1.08); box-shadow: 0 15px 30px rgba(16, 185, 129, 0.4) !important; animation: pulseTurno 1.5s infinite; }
-        .turno-attivo .tuo-numero { color: white !important; font-size: 65px; }
+
+        .info-box { 
+            background: rgba(255,255,255,0.9); padding: 25px; border-radius: 25px; margin: 30px 0; 
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.02); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .tuo-numero { font-size: 45px; font-weight: 800; color: var(--accent); transition: all 0.3s ease; }
+
+        /* --- ZONA VERDE: QUANDO È IL TUO TURNO --- */
+        .turno-attivo {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+            transform: scale(1.08);
+            box-shadow: 0 15px 30px rgba(16, 185, 129, 0.4) !important;
+            animation: pulseTurno 1.5s infinite;
+        }
+        .turno-attivo #info-box-title { color: white !important; font-size: 16px !important; }
+        .turno-attivo .tuo-numero { color: white !important; font-size: 75px; line-height: 1; margin: 10px 0; }
+        
+        /* Messaggio "È ORA IL TUO TURNO" dentro il box */
+        .messaggio-turno {
+            display: none;
+            color: white;
+            font-size: 20px;
+            font-weight: 900;
+            text-transform: uppercase;
+            margin-top: 5px;
+            animation: blinker 1s linear infinite;
+        }
+        .turno-attivo .messaggio-turno { display: block; }
+        
+        @keyframes blinker { 50% { opacity: 0.3; } }
         @keyframes pulseTurno { 0% { transform: scale(1.05); } 50% { transform: scale(1.1); } 100% { transform: scale(1.05); } }
-        button { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 20px 30px; border-radius: 50px; font-size: 18px; font-weight: 600; cursor: pointer; width: 100%; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3); }
-        .avviso-schermo { font-size: 11px; color: #64748b; margin-top: 15px; font-weight: 600; line-height: 1.4; }
+
+        button { 
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white; border: none; padding: 20px 30px; border-radius: 50px; 
+            font-size: 18px; font-weight: 600; cursor: pointer; width: 100%; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3); 
+        }
+        .avviso-schermo { font-size: 11px; color: #64748b; margin-top: 20px; font-weight: 600; line-height: 1.4; }
+        
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(5px); align-items: center; justify-content: center; z-index: 1000; }
-        .modal-box { background: white; padding: 30px; border-radius: 24px; text-align: center; width: 85%; max-width: 320px; box-shadow: 0 25px 50px rgba(0,0,0,0.2); }
+        .modal-box { background: white; padding: 30px; border-radius: 24px; text-align: center; width: 85%; max-width: 320px; }
     </style>
 </head>
 <body>
     <div class="card">
         <h2>Studio Medico</h2>
         <h3>Dott. GIUSEPPE MARTINO</h3>
-        <p>Attualmente in visita:</p>
+        <p style="margin-bottom: 5px; font-weight: 600; color: #475569;">Attualmente in visita:</p>
         <div class="numero-attuale" id="current-display">--</div>
         
         <div id="registration-section">
+            <p style="font-size: 14px; margin-bottom: 20px; color: #64748b;">Inquadra il QR e prendi il posto:</p>
             <button onclick="prendiNumero()">PRENDI NUMERO</button>
         </div>
 
         <div id="status-section" style="display:none;">
             <div class="info-box" id="info-box-container">
-                <p id="info-box-title" style="margin: 0; font-size: 14px; font-weight: 600;">Il tuo turno è il numero</p>
+                <p id="info-box-title" style="margin: 0; font-size: 14px; font-weight: 600; color: #64748b;">Il tuo turno è il numero</p>
                 <div class="tuo-numero" id="my-number-display">--</div>
+                <div class="messaggio-turno">È ORA IL TUO TURNO!</div>
             </div>
-            <p id="wait-message" style="font-size: 14px; font-weight: 600;">Attendi il tuo turno...</p>
+            <p id="wait-message" style="font-size: 14px; font-weight: 600; color: #475569;">Ti avviseremo quando entrare.</p>
             <div class="avviso-schermo">
-                ⚠️ Per non perdere il turno, tieni questa pagina aperta.<br>Lo schermo resterà attivo.
+                ⚠️ Per non perdere il turno, tieni questa pagina aperta.<br>Lo schermo resterà attivo da solo.
             </div>
         </div>
     </div>
@@ -49,7 +107,7 @@
     <div id="custom-modal" class="modal-overlay">
         <div class="modal-box">
             <p id="modal-text">Messaggio</p>
-            <button onclick="chiudiModal()">Ho capito</button>
+            <button onclick="chiudiModal()" style="padding: 12px; font-size: 16px;">Ho capito</button>
         </div>
     </div>
 
@@ -60,44 +118,17 @@
         let flashInterval = null;
 
         async function mantieniSchermoSveglio() {
-            try {
-                if ('wakeLock' in navigator) {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                }
-            } catch (err) { console.log("WakeLock non supportato"); }
+            try { if ('wakeLock' in navigator) { wakeLock = await navigator.wakeLock.request('screen'); } } catch (err) {}
         }
 
         function startFlashTitle() {
             if (flashInterval) return;
-            flashInterval = setInterval(() => {
-                document.title = document.title === "🔔 TOCCA A TE!" ? "Fila - Studio Medico" : "🔔 TOCCA A TE!";
-            }, 1000);
+            flashInterval = setInterval(() => { document.title = document.title === "🔔 TOCCA A TE!" ? "Studio Medico" : "🔔 TOCCA A TE!"; }, 1000);
         }
 
-        function stopFlashTitle() {
-            clearInterval(flashInterval);
-            flashInterval = null;
-            document.title = "Fila - Dott. Giuseppe Martino";
-        }
-
-        function mostraModal(messaggio) {
-            document.getElementById('modal-text').innerText = messaggio;
-            document.getElementById('custom-modal').style.display = 'flex';
-        }
-
-        function chiudiModal() {
-            document.getElementById('custom-modal').style.display = 'none';
-        }
-
-        window.onload = () => {
-            const savedNumber = localStorage.getItem('paziente_ticket');
-            if (savedNumber) {
-                mostraStatoPaziente(savedNumber);
-                mantieniSchermoSveglio();
-            }
-            aggiornaNumeroCorrente();
-            setInterval(aggiornaNumeroCorrente, 5000);
-        };
+        function stopFlashTitle() { clearInterval(flashInterval); flashInterval = null; document.title = "Fila - Dott. Giuseppe Martino"; }
+        function mostraModal(msg) { document.getElementById('modal-text').innerText = msg; document.getElementById('custom-modal').style.display = 'flex'; }
+        function chiudiModal() { document.getElementById('custom-modal').style.display = 'none'; }
 
         function suonaCampanello() {
             try {
@@ -117,38 +148,30 @@
                 document.getElementById('current-display').innerText = data.attuale || 0;
 
                 const savedNumber = localStorage.getItem('paziente_ticket');
-                
-                // --- CONTROLLO AZZERAMENTO (RESET) ---
                 if (savedNumber) {
                     const mioNumero = parseInt(savedNumber);
-                    
-                    // Se l'ultimo numero assegnato è inferiore al mio, significa che il medico ha resettato
                     if (data.ultimoAssegnato < mioNumero) {
                         localStorage.removeItem('paziente_ticket');
-                        numeroPrecedente = -1;
-                        stopFlashTitle();
-                        document.getElementById('status-section').style.display = 'none';
-                        document.getElementById('registration-section').style.display = 'block';
-                        mostraModal("La fila è stata azzerata per un nuovo turno.");
-                        return; // Esci subito
+                        location.reload();
+                        return;
                     }
 
-                    // Logica Turni
+                    const infoBox = document.getElementById('info-box-container');
+                    const waitMsg = document.getElementById('wait-message');
+
                     if (data.attuale === mioNumero) {
-                        if (numeroPrecedente !== data.attuale) {
-                            suonaCampanello();
-                            startFlashTitle();
-                        }
-                        document.getElementById('info-box-container').classList.add('turno-attivo');
-                        document.getElementById('wait-message').innerText = "È ORA IL TUO TURNO!";
+                        if (numeroPrecedente !== data.attuale) { suonaCampanello(); startFlashTitle(); }
+                        infoBox.classList.add('turno-attivo');
+                        waitMsg.style.display = "none";
                     } else if (data.attuale > mioNumero) {
                         stopFlashTitle();
-                        document.getElementById('info-box-container').classList.remove('turno-attivo');
-                        document.getElementById('wait-message').innerText = "Il tuo turno è passato.";
+                        infoBox.classList.remove('turno-attivo');
+                        waitMsg.innerText = "Il tuo turno è passato.";
+                        waitMsg.style.color = "var(--danger)";
                     } else {
                         stopFlashTitle();
-                        document.getElementById('info-box-container').classList.remove('turno-attivo');
-                        document.getElementById('wait-message').innerText = "Attendi il tuo turno...";
+                        infoBox.classList.remove('turno-attivo');
+                        waitMsg.innerText = "Ti avviseremo quando entrare.";
                     }
                 }
                 numeroPrecedente = data.attuale;
@@ -163,9 +186,7 @@
                 mostraStatoPaziente(data.tuoTurno);
                 mantieniSchermoSveglio();
                 suonaCampanello();
-            } catch(e) {
-                mostraModal("Errore di connessione. Riprova.");
-            }
+            } catch(e) { mostraModal("Errore di connessione."); }
         }
 
         function mostraStatoPaziente(num) {
