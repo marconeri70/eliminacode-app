@@ -1,7 +1,7 @@
 {
   "id": "medico-app",
   "name": "Console - Dott. Martino",
-  "short_name": "Fila Studio",
+  "short_name": "Console",
   "display": "standalone",
   "start_url": "admin.html",
   "background_color": "#0f172a",
