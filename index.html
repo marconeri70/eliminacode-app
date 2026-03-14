@@ -132,8 +132,6 @@
                 const res = await fetch(`${WORKER_URL}/status`); 
                 const data = await res.json();
                 
-                if (numeroPrecedente !== -1 && data.attuale > numeroPrecedente) suonaCampanello();
-                numeroPrecedente = data.attuale;
                 document.getElementById('current-display').innerText = data.attuale || 0;
 
                 const savedNumber = localStorage.getItem('paziente_ticket');
@@ -144,10 +142,9 @@
                     document.getElementById('status-section').style.display = 'none';
                     document.getElementById('registration-section').style.display = 'block';
                     mostraModal("La fila è ripartita da zero. Prendi un nuovo numero per il turno attuale.");
-                    return; // Ferma qui se è stato azzerato
+                    return; 
                 }
 
-                // --- MAGIA: CONTROLLO SE È IL TUO TURNO ---
                 if (savedNumber) {
                     const mioNumero = parseInt(savedNumber);
                     const infoBox = document.getElementById('info-box-container');
@@ -155,6 +152,12 @@
 
                     if (data.attuale === mioNumero) {
                         // È IL SUO TURNO!
+                        
+                        // Fa suonare il campanello SOLO in questo esatto momento (al cambio turno)
+                        if (numeroPrecedente !== -1 && numeroPrecedente !== data.attuale) {
+                            suonaCampanello();
+                        }
+                        
                         infoBox.classList.add('turno-attivo');
                         waitMsg.innerHTML = "È ORA IL TUO TURNO!<br>Puoi entrare in ambulatorio.";
                         waitMsg.style.color = "var(--success)";
@@ -173,6 +176,10 @@
                         waitMsg.style.fontSize = "14px";
                     }
                 }
+                
+                // Aggiorniamo la memoria del telefono dopo i controlli
+                numeroPrecedente = data.attuale;
+                
             } catch (e) {}
         }
 
@@ -182,8 +189,11 @@
                 const data = await res.json();
                 localStorage.setItem('paziente_ticket', data.tuoTurno);
                 mostraStatoPaziente(data.tuoTurno); 
+                
+                // Suonino di conferma quando prendi il numero
                 suonaCampanello();
-                aggiornaNumeroCorrente(); // Aggiorna subito per vedere se è il primo
+                
+                aggiornaNumeroCorrente(); 
             } catch (e) { mostraModal("Errore di connessione. Riprova."); }
         }
 
