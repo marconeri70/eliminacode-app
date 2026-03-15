@@ -84,7 +84,6 @@
         const WORKER_URL = "https://motore-coda.vocidicassino.workers.dev"; 
         let numeroPrecedente = -1;
         let wakeLock = null;
-        let informatorePrecedente = 0;
 
         setTimeout(() => {
             const tip = document.getElementById('install-tip');
@@ -120,38 +119,40 @@
             try {
                 const res = await fetch(`${WORKER_URL}/status`); 
                 const data = await res.json();
-                document.getElementById('current-display').innerText = data.attuale || 0;
-
+                
+                // 1. GESTIONE AZZERAMENTO FILA
                 const saved = localStorage.getItem('paziente_ticket');
-                const wait = document.getElementById('wait-message');
-                const box = document.getElementById('info-box-container');
-
-                // Gestione Azzeramento Fila
                 if (saved) {
                     const mio = parseInt(saved);
-                    // Se il medico resetta, ultimoAssegnato torna a 0. Se il mio numero è più alto, la fila è nuova.
-                    if (data.ultimoAssegnato < mio && data.ultimoAssegnato === 0) {
+                    // Se entrambi sono zero, il medico ha cliccato reset
+                    if (data.ultimoAssegnato === 0 && data.attuale === 0) {
                         localStorage.removeItem('paziente_ticket');
                         mostraModalReset("La fila è stata azzerata per il nuovo turno.");
                         return;
                     }
+                }
 
-                    // Gestione Visiva Turno
-                    if (data.attuale === mio) {
-                        if (numeroPrecedente !== data.attuale) { 
-                            suona(); 
-                            document.title = "🔔 TOCCA A TE!"; 
-                        }
-                        box.classList.add('turno-attivo');
-                        wait.style.display = "none";
-                    } else {
-                        box.classList.remove('turno-attivo');
-                        wait.style.display = "block";
-                        
-                        // Controllo se il medico ha chiamato un informatore (il conteggio informatori è sceso)
-                        if (informatorePrecedente > data.informatori) {
-                            wait.innerHTML = "<span style='color:var(--amber); font-weight:bold;'>📢 Ingresso Informatore: la fila riprenderà tra poco.</span>";
+                // 2. AGGIORNAMENTO NUMERO ATTUALE
+                document.getElementById('current-display').innerText = data.attuale || 0;
+
+                const wait = document.getElementById('wait-message');
+                const box = document.getElementById('info-box-container');
+
+                // 3. LOGICA INFORMATORE IN VISITA
+                if (data.infoInVisita) {
+                    wait.innerHTML = "<b style='color:var(--amber)'>💼 INFORMATORE IN VISITA</b><br>La fila riprenderà tra poco.";
+                    box.style.opacity = "0.5";
+                } else {
+                    box.style.opacity = "1";
+                    if (saved) {
+                        const mio = parseInt(saved);
+                        if (data.attuale === mio) {
+                            if (numeroPrecedente !== data.attuale) { suona(); document.title = "🔔 TOCCA A TE!"; }
+                            box.classList.add('turno-attivo');
+                            wait.style.display = "none";
                         } else {
+                            box.classList.remove('turno-attivo');
+                            wait.style.display = "block";
                             if (data.attuale > mio) wait.innerText = "Il tuo turno è passato.";
                             else wait.innerText = "Ti avviseremo quando entrare.";
                         }
@@ -159,7 +160,6 @@
                 }
                 
                 numeroPrecedente = data.attuale;
-                informatorePrecedente = data.informatori;
             } catch (e) {}
         }
 
