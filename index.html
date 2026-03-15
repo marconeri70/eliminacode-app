@@ -7,11 +7,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="manifest" href="manifest.json">
     <style>
-        :root { --primary: #1e293b; --accent: #0ea5e9; --success: #10b981; --danger: #ef4444; }
+        :root { --primary: #1e293b; --accent: #0ea5e9; --success: #10b981; --danger: #ef4444; --amber: #f59e0b; }
         body { font-family: 'Poppins', sans-serif; margin: 0; padding: 20px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(-45deg, #e0f2fe, #bae6fd, #f0fdf4, #e0f2fe); background-size: 400% 400%; animation: gradientBG 15s ease infinite; color: var(--primary); }
         @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
         
-        /* FUMETTO SUGGERIMENTO INSTALLAZIONE */
         #install-tip {
             position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
             width: 90%; max-width: 350px; background: #0f172a; color: white;
@@ -42,7 +41,7 @@
         button { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 20px 30px; border-radius: 50px; font-size: 18px; font-weight: 600; cursor: pointer; width: 100%; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3); }
         .avviso-schermo { font-size: 11px; color: #64748b; margin-top: 20px; font-weight: 600; }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(5px); align-items: center; justify-content: center; z-index: 1000; }
-        .modal-box { background: white; padding: 30px; border-radius: 24px; text-align: center; width: 85%; max-width: 320px; }
+        .modal-box { background: white; padding: 30px; border-radius: 24px; text-align: center; width: 85%; max-width: 320px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
     </style>
 </head>
 <body>
@@ -77,7 +76,7 @@
     <div id="custom-modal" class="modal-overlay">
         <div class="modal-box">
             <p id="modal-text"></p>
-            <button onclick="chiudiModalReset()" style="padding: 12px 25px; border-radius: 12px; border: none; background: var(--accent); color: white; font-weight: bold;">Ho capito</button>
+            <button onclick="chiudiModalReset()" style="padding: 12px 25px; border-radius: 12px; border: none; background: var(--accent); color: white; font-weight: bold; cursor: pointer;">Ho capito</button>
         </div>
     </div>
 
@@ -85,8 +84,8 @@
         const WORKER_URL = "https://motore-coda.vocidicassino.workers.dev"; 
         let numeroPrecedente = -1;
         let wakeLock = null;
+        let informatorePrecedente = 0;
 
-        // Fa scomparire il suggerimento dopo 10 secondi
         setTimeout(() => {
             const tip = document.getElementById('install-tip');
             if (tip) tip.style.display = 'none';
@@ -118,37 +117,51 @@
         }
 
         async function aggiorna() {
-    try {
-        const res = await fetch(`${WORKER_URL}/status`); 
-        const data = await res.json();
-        document.getElementById('current-display').innerText = data.attuale || 0;
+            try {
+                const res = await fetch(`${WORKER_URL}/status`); 
+                const data = await res.json();
+                document.getElementById('current-display').innerText = data.attuale || 0;
 
-        const saved = localStorage.getItem('paziente_ticket');
-        const wait = document.getElementById('wait-message');
-        const box = document.getElementById('info-box-container');
+                const saved = localStorage.getItem('paziente_ticket');
+                const wait = document.getElementById('wait-message');
+                const box = document.getElementById('info-box-container');
 
-        // NUOVO: Se ci sono informatori e il medico ne sta chiamando uno
-        // (Logica: se il numero pazienti è fermo ma c'è un'azione del medico)
-        if (data.informatori_in_visita) { 
-            wait.innerHTML = "<span style='color:var(--amber)'>📢 Ingresso Informatore: la fila riprenderà tra poco.</span>";
+                // Gestione Azzeramento Fila
+                if (saved) {
+                    const mio = parseInt(saved);
+                    // Se il medico resetta, ultimoAssegnato torna a 0. Se il mio numero è più alto, la fila è nuova.
+                    if (data.ultimoAssegnato < mio && data.ultimoAssegnato === 0) {
+                        localStorage.removeItem('paziente_ticket');
+                        mostraModalReset("La fila è stata azzerata per il nuovo turno.");
+                        return;
+                    }
+
+                    // Gestione Visiva Turno
+                    if (data.attuale === mio) {
+                        if (numeroPrecedente !== data.attuale) { 
+                            suona(); 
+                            document.title = "🔔 TOCCA A TE!"; 
+                        }
+                        box.classList.add('turno-attivo');
+                        wait.style.display = "none";
+                    } else {
+                        box.classList.remove('turno-attivo');
+                        wait.style.display = "block";
+                        
+                        // Controllo se il medico ha chiamato un informatore (il conteggio informatori è sceso)
+                        if (informatorePrecedente > data.informatori) {
+                            wait.innerHTML = "<span style='color:var(--amber); font-weight:bold;'>📢 Ingresso Informatore: la fila riprenderà tra poco.</span>";
+                        } else {
+                            if (data.attuale > mio) wait.innerText = "Il tuo turno è passato.";
+                            else wait.innerText = "Ti avviseremo quando entrare.";
+                        }
+                    }
+                }
+                
+                numeroPrecedente = data.attuale;
+                informatorePrecedente = data.informatori;
+            } catch (e) {}
         }
-
-        if (saved) {
-            const mio = parseInt(saved);
-            if (data.attuale === mio) {
-                if (numeroPrecedente !== data.attuale) { suona(); document.title = "🔔 TOCCA A TE!"; }
-                box.classList.add('turno-attivo');
-                wait.style.display = "none";
-            } else {
-                box.classList.remove('turno-attivo');
-                wait.style.display = "block";
-                if (data.attuale > mio) wait.innerText = "Il tuo turno è passato.";
-                else if (!data.informatori_in_visita) wait.innerText = "Ti avviseremo quando entrare.";
-            }
-        }
-        numeroPrecedente = data.attuale;
-    } catch (e) {}
-}
 
         async function prendiNumero() {
             try {
@@ -158,7 +171,8 @@
                 document.getElementById('my-number-display').innerText = data.tuoTurno;
                 document.getElementById('registration-section').style.display = 'none';
                 document.getElementById('status-section').style.display = 'block';
-                mantieniSchermoSveglio(); suona();
+                mantieniSchermoSveglio(); 
+                suona();
             } catch(e) { mostraModalReset("Errore di connessione."); }
         }
 
@@ -169,7 +183,8 @@
                 document.getElementById('registration-section').style.display = 'none';
                 document.getElementById('status-section').style.display = 'block';
             }
-            aggiorna(); setInterval(aggiorna, 5000);
+            aggiorna(); 
+            setInterval(aggiorna, 5000);
         };
     </script>
 </body>
