@@ -10,22 +10,26 @@
         body { font-family: 'Poppins', sans-serif; background: #f1f5f9; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; text-align: center; }
         .card { background: white; padding: 40px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
         .btn-segnala { background: var(--primary); color: white; border: none; padding: 20px; border-radius: 15px; font-size: 18px; font-weight: 700; cursor: pointer; width: 100%; transition: 0.3s; }
-        .status-box { display: none; padding: 20px; border-radius: 15px; background: #f8fafc; border: 2px dashed #cbd5e1; margin-top: 20px; }
+        .status-box { display: none; padding: 30px; border-radius: 15px; background: #f8fafc; border: 2px dashed #cbd5e1; margin-top: 20px; }
+        
+        /* Stile quando il medico chiama l'informatore */
         .chiamata-attiva { background: var(--accent) !important; border: none !important; animation: pulse 1.5s infinite; color: #422006; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        
         h1 { font-size: 22px; margin-bottom: 10px; }
+        .avviso-testo { font-weight: 800; font-size: 26px; line-height: 1.2; }
     </style>
 </head>
 <body>
     <div class="card">
         <h1>Area Informatori</h1>
-        <p id="desc">Segnala la tua presenza in segreteria.</p>
+        <p id="desc">Segnala la tua presenza in segreteria per metterti in coda.</p>
         
         <button id="btn" class="btn-segnala" onclick="segnalaPresenza()">SEGNALA PRESENZA</button>
 
         <div id="status" class="status-box">
-            <p id="status-text">Presenza inviata.<br>Attendi qui o in sala d'attesa.</p>
-            <div id="avviso-chiamata" style="display:none; font-weight:800; font-size:24px;">ENTRA ORA! 💼</div>
+            <p id="status-text">Presenza inviata correttamente.<br><br><small>Riceverai un avviso sonoro quando il medico sarà pronto.</small></p>
+            <div id="avviso-chiamata" style="display:none;" class="avviso-testo">💼<br>È IL TUO TURNO!<br>ENTRA ORA</div>
         </div>
     </div>
 
@@ -34,58 +38,64 @@
         let segnalato = false;
         let conteggioIniziale = 0;
 
+        // SUONO SPECIFICO PER INFORMATORE (Doppio trillo)
         function suonaInformatore() {
-           const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    
-          // Creiamo un doppio tono (tipo trillo professionale)
-        [440, 880].forEach((freq, i) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        
-        osc.frequency.setValueAtTime(freq, ctx.currentTime + (i * 0.1));
-        gain.gain.setValueAtTime(0.1, ctx.currentTime + (i * 0.1));
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + (i * 0.1) + 0.5);
-        
-        osc.start(ctx.currentTime + (i * 0.1));
-        osc.stop(ctx.currentTime + (i * 0.1) + 0.5);
-    });
-}
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                [440, 660].forEach((freq, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain); gain.connect(ctx.destination);
+                    osc.frequency.setValueAtTime(freq, ctx.currentTime + (i * 0.15));
+                    gain.gain.setValueAtTime(0.1, ctx.currentTime + (i * 0.15));
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + (i * 0.15) + 0.4);
+                    osc.start(ctx.currentTime + (i * 0.15));
+                    osc.stop(ctx.currentTime + (i * 0.15) + 0.4);
+                });
+            } catch(e) { console.log("Audio non supportato"); }
+        }
 
         async function segnalaPresenza() {
-            const res = await fetch(`${WORK_URL}/join-info`, { method: 'POST' });
-            const status = await fetch(`${WORK_URL}/status`);
-            const data = await status.json();
-            
-            conteggioIniziale = data.informatori;
-            segnalato = true;
+            try {
+                // Segnala al server l'arrivo dell'informatore
+                await fetch(`${WORK_URL}/join-info`, { method: 'POST' });
+                
+                // Prende lo stato attuale per sapere quanti ce ne sono
+                const res = await fetch(`${WORK_URL}/status`);
+                const data = await res.json();
+                
+                conteggioIniziale = data.informatori;
+                segnalato = true;
 
-            document.getElementById('btn').style.display = 'none';
-            document.getElementById('desc').style.display = 'none';
-            document.getElementById('status').style.display = 'block';
-            
-            // Inizia a controllare se il medico lo chiama
-            setInterval(controllaChiamata, 4000);
+                document.getElementById('btn').style.display = 'none';
+                document.getElementById('desc').style.display = 'none';
+                document.getElementById('status').style.display = 'block';
+                
+                // Controlla ogni 4 secondi se il medico lo chiama
+                setInterval(controllaChiamata, 4000);
+            } catch(e) { alert("Errore di connessione."); }
         }
 
         async function controllaChiamata() {
             if (!segnalato) return;
-            const res = await fetch(`${WORK_URL}/status`);
-            const data = await res.json();
+            try {
+                const res = await fetch(`${WORK_URL}/status`);
+                const data = await res.json();
 
-            // Se il numero di informatori è sceso, significa che il medico ha cliccato "Fa entrare"
-            if (data.informatori < conteggioIniziale) {
-                const box = document.getElementById('status');
-                const avviso = document.getElementById('avviso-chiamata');
-                const text = document.getElementById('status-text');
-                
-                box.classList.add('chiamata-attiva');
-                avviso.style.display = 'block';
-                text.style.display = 'none';
-                suona();
-                segnalato = false; // Ferma il controllo
-            }
+                // Se il numero totale di informatori cala, significa che il medico ne ha fatto entrare uno
+                if (data.informatori < conteggioIniziale) {
+                    const box = document.getElementById('status');
+                    const avviso = document.getElementById('avviso-chiamata');
+                    const text = document.getElementById('status-text');
+                    
+                    box.classList.add('chiamata-attiva');
+                    avviso.style.display = 'block';
+                    text.style.display = 'none';
+                    
+                    suonaInformatore(); // Emette il trillo speciale
+                    segnalato = false; // Ferma il controllo così non suona all'infinito
+                }
+            } catch(e) {}
         }
     </script>
 </body>
