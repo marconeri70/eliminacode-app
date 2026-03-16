@@ -152,10 +152,10 @@
                 (decodedText) => {
                     // SE LEGGE CON SUCCESSO
                     html5QrCode.stop().then(() => {
-                        if (decodedText.includes("index.html")) {
-                            window.location.href = decodedText; // Ricarica la pagina con i permessi sbloccati
+                        if (decodedText.includes("eliminacode-app") && !decodedText.includes("informatore")) {
+                             window.location.href = window.location.pathname + "?qr=1";
                         } else {
-                            alert("❌ QR Code errato. Assicurati di inquadrare il cartello dei PAZIENTI.");
+                            alert("❌ QR errato. Hai inquadrato il cartello degli INFORMATORI. Inquadra quello della sala d'attesa.");
                             chiudiScanner();
                         }
                     });
