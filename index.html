@@ -153,7 +153,7 @@
                     // APPENA LEGGE UN CODICE, FERMA LA FOTOCAMERA
                     html5QrCode.stop().then(() => {
                         // Verifica che sia il QR giusto (deve contenere l'url dell'app pazienti, non quello dell'informatore)
-                        if (decodedText.includes("eliminacode-app") && !decodedText.includes("index.html?qr=1")) {
+                        if (decodedText.includes("eliminacode-app") && decodedText.includes("index.html?qr=1")) {
                              // Reindirizza direttamente all'URL esatto letto dal QR!
                              window.location.href = decodedText;
                         } else {
