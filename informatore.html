@@ -77,26 +77,24 @@
         }
 
         async function controllaChiamata() {
-            if (!segnalato) return;
-            try {
-                const res = await fetch(`${WORK_URL}/status`);
-                const data = await res.json();
+           if (!segnalato) return;
+           try {
+               const res = await fetch(`${WORK_URL}/status`);
+               const data = await res.json();
 
-                // Se il numero totale di informatori cala, significa che il medico ne ha fatto entrare uno
-                if (data.informatori < conteggioIniziale) {
-                    const box = document.getElementById('status');
-                    const avviso = document.getElementById('avviso-chiamata');
-                    const text = document.getElementById('status-text');
-                    
-                    box.classList.add('chiamata-attiva');
-                    avviso.style.display = 'block';
-                    text.style.display = 'none';
-                    
-                    suonaInformatore(); // Emette il trillo speciale
-                    segnalato = false; // Ferma il controllo così non suona all'infinito
-                }
-            } catch(e) {}
-        }
+               // Se il medico resetta tutto, l'informatore viene avvisato
+              if (data.sessionID != sessioneIniziale) {
+                  alert("Il medico ha resettato la sessione. Segnalati nuovamente se necessario.");
+                  location.reload();
+                  return;
+             }
+
+              if (data.informatori < conteggioIniziale) {
+                  // ... logica chiamata attiva e suono ...
+                  segnalato = false;
+             }
+          } catch(e) {}
+       }
     </script>
 </body>
 </html>
