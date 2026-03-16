@@ -60,7 +60,7 @@
     let segnalato = false;
     let chiamataRicevuta = false; 
     let audioCtx = null;
-    let html5QrCode = null; // Nuovo oggetto scanner
+    let html5QrCode = null;
 
     const urlParams = new URLSearchParams(window.location.search);
     const isFromQR = urlParams.has('qr');
@@ -115,15 +115,6 @@
             },
             (errorMessage) => {
                 // Silenzioso in caso di mancata lettura del fotogramma
-            }
-        ).catch((err) => {
-            alert("Errore fotocamera. Assicurati di aver dato i permessi al browser.");
-            chiudiScanner();
-        });
-    }
- },
-            (errorMessage) => {
-                // Ignora errori di background
             }
         ).catch((err) => {
             alert("Errore fotocamera. Assicurati di aver dato i permessi al browser.");
