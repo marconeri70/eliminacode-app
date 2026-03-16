@@ -108,14 +108,11 @@
             { facingMode: "environment" }, 
             { fps: 15 },
             (decodedText) => {
-                // APPENA LEGGE QUALSIASI QR CODE, SBLOCCA L'APP ISTANTANEAMENTE
                 html5QrCode.stop().then(() => {
                     window.location.href = window.location.pathname + "?qr=1";
                 });
             },
-            (errorMessage) => {
-                // Silenzioso in caso di mancata lettura del fotogramma
-            }
+            (errorMessage) => { }
         ).catch((err) => {
             alert("Errore fotocamera. Assicurati di aver dato i permessi al browser.");
             chiudiScanner();
@@ -136,6 +133,11 @@
     async function segnalaPresenza() {
         sbloccaAudio();
         
+        if (!isFromQR) {
+            alert("Devi scansionare il QR Code o usare l'NFC presente in studio per attivare l'app.");
+            return;
+        }
+        
         try {
             const res = await fetch(`${WORK_URL}/join-info`, { method: 'POST' });
             const data = await res.json();
@@ -146,7 +148,6 @@
             segnalato = true;
             chiamataRicevuta = false;
             aggiornaInterfaccia();
-            setInterval(controllaChiamata, 4000);
         } catch(e) { alert("Errore di connessione al server."); }
     }
 
@@ -157,24 +158,26 @@
         document.getElementById('status').style.display = 'block';
     }
 
-    async function controllaChiamata() {
-        if (!segnalato) return;
+    // MOTORE DI CONTROLLO CONTINUO E BLINDATO
+    async function controllaStato() {
         try {
             const res = await fetch(`${WORK_URL}/status`);
             const data = await res.json();
             const savedSession = localStorage.getItem('info_session_id');
 
+            // 1. GESTIONE RESET DEL DOTTORE (AZZERA)
             if (savedSession && data.sessionID != savedSession) {
                 localStorage.removeItem('info_session_id');
                 localStorage.removeItem('info_segnalato');
                 segnalato = false;
                 chiamataRicevuta = false;
                 
-                mostraModalReset("⚠️ La giornata è stata azzerata dal medico.\nDevi scansionare nuovamente il QR Code per segnalare la tua presenza.");
+                mostraModalReset("⚠️ La giornata è stata azzerata dal medico.\nDevi usare nuovamente il QR Code o l'NFC per segnalare la tua presenza.");
                 return;
             }
 
-            if (data.infoInVisita && !chiamataRicevuta) {
+            // 2. GESTIONE CHIAMATA (TURNO)
+            if (segnalato && data.infoInVisita && !chiamataRicevuta) {
                 const box = document.getElementById('status');
                 const avviso = document.getElementById('avviso-chiamata');
                 const text = document.getElementById('status-text');
@@ -188,6 +191,15 @@
                     localStorage.removeItem('info_segnalato'); 
                 }
             }
+
+            // 3. AUTO-RESET A FINE VISITA
+            // Se l'informatore era stato chiamato, ma ora infoInVisita è false (il medico ha premuto "Chiama Prossimo")
+            if (chiamataRicevuta && !data.infoInVisita) {
+                localStorage.removeItem('info_session_id');
+                // Toglie l'autorizzazione ?qr=1 e riporta la pagina alla schermata di blocco fotocamera
+                window.location.href = window.location.pathname; 
+            }
+
         } catch(e) {}
     }
 
@@ -195,7 +207,6 @@
         const isSegnalato = localStorage.getItem('info_segnalato');
         
         if (!isFromQR && !isSegnalato) {
-            // Se manca il parametro, il tasto diventa uno scanner automatico
             const btn = document.getElementById('btn');
             btn.innerText = "📷 INQUADRA QR CODE";
             btn.classList.add('btn-grigio');
@@ -205,8 +216,11 @@
         } else if (isSegnalato === 'true') {
             segnalato = true;
             aggiornaInterfaccia();
-            setInterval(controllaChiamata, 4000);
         }
+
+        // Il motore gira sempre in background fin dall'apertura della pagina
+        controllaStato();
+        setInterval(controllaStato, 3000);
     };
     </script>
 </body>
