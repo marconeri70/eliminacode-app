@@ -48,6 +48,7 @@
     <script>
     const WORK_URL = "https://motore-coda.vocidicassino.workers.dev";
     let segnalato = false;
+    let chiamataRicevuta = false; // NUOVO: serve per non far suonare all'infinito senza bloccare l'ascolto
     let audioCtx = null;
 
     // Controllo sicurezza QR
@@ -102,6 +103,7 @@
             localStorage.setItem('info_segnalato', 'true');
             
             segnalato = true;
+            chiamataRicevuta = false;
             aggiornaInterfaccia();
             setInterval(controllaChiamata, 4000);
         } catch(e) { alert("Errore di connessione al server."); }
@@ -121,12 +123,13 @@
             const data = await res.json();
             const savedSession = localStorage.getItem('info_session_id');
 
-            // GESTIONE AZZERAMENTO MEDICO
+            // GESTIONE AZZERAMENTO MEDICO (Adesso continua ad ascoltare sempre!)
             if (savedSession && data.sessionID != savedSession) {
                 // Pulizia della memoria
                 localStorage.removeItem('info_session_id');
                 localStorage.removeItem('info_segnalato');
                 segnalato = false;
+                chiamataRicevuta = false;
                 
                 // Mostra il popup di reset
                 mostraModalReset("⚠️ La giornata è stata azzerata dal medico.\nDevi scansionare nuovamente il QR Code per segnalare la tua presenza.");
@@ -134,7 +137,7 @@
             }
 
             // GESTIONE CHIAMATA (infoInVisita)
-            if (data.infoInVisita) {
+            if (data.infoInVisita && !chiamataRicevuta) {
                 const box = document.getElementById('status');
                 const avviso = document.getElementById('avviso-chiamata');
                 const text = document.getElementById('status-text');
@@ -144,8 +147,8 @@
                     avviso.style.display = 'block';
                     text.style.display = 'none';
                     suonaInformatore(); 
-                    segnalato = false; // Ferma il controllo per evitare loop sonori
-                    localStorage.removeItem('info_segnalato'); // Visita accettata
+                    chiamataRicevuta = true; // Impedisce il loop del suono, ma NON spegne l'ascolto verso il server!
+                    localStorage.removeItem('info_segnalato'); 
                 }
             }
         } catch(e) {}
