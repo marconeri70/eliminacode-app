@@ -10,6 +10,7 @@
         body { font-family: 'Poppins', sans-serif; background: #f1f5f9; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; text-align: center; }
         .card { background: white; padding: 40px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
         .btn-segnala { background: var(--primary); color: white; border: none; padding: 20px; border-radius: 15px; font-size: 18px; font-weight: 700; cursor: pointer; width: 100%; transition: 0.3s; }
+        .btn-segnala:disabled { background: #94a3b8; cursor: not-allowed; }
         .status-box { display: none; padding: 30px; border-radius: 15px; background: #f8fafc; border: 2px dashed #cbd5e1; margin-top: 20px; }
         
         .chiamata-attiva { background: var(--accent) !important; border: none !important; animation: pulse 1.5s infinite; color: #422006; }
@@ -17,6 +18,10 @@
         
         h1 { font-size: 22px; margin-bottom: 10px; }
         .avviso-testo { font-weight: 800; font-size: 26px; line-height: 1.2; }
+        
+        /* Stili per il popup di reset */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(5px); align-items: center; justify-content: center; z-index: 1000; }
+        .modal-box { background: white; padding: 30px; border-radius: 24px; text-align: center; width: 85%; max-width: 320px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
     </style>
 </head>
 <body>
@@ -25,6 +30,7 @@
         <p id="desc">Segnala la tua presenza in segreteria per metterti in coda.</p>
         
         <button id="btn" class="btn-segnala" onclick="segnalaPresenza()">SEGNALA PRESENZA</button>
+        <p id="qr-only-msg" style="display:none; font-size: 13px; color: var(--danger); font-weight: bold; margin-top: 15px;">⚠️ FOTOCAMERA RICHIESTA:<br>Scansiona il QR Code in segreteria per attivare il tasto.</p>
 
         <div id="status" class="status-box">
             <p id="status-text">Presenza inviata correttamente.<br><br><small>Riceverai un avviso sonoro quando il medico ti chiamerà.</small></p>
@@ -32,11 +38,21 @@
         </div>
     </div>
 
+    <div id="custom-modal" class="modal-overlay">
+        <div class="modal-box">
+            <p id="modal-text" style="font-weight: 600; color: #1e293b;"></p>
+            <button onclick="chiudiModalReset()" style="padding: 12px 25px; border-radius: 12px; border: none; background: var(--danger); color: white; font-weight: bold; cursor: pointer; margin-top: 15px;">Chiudi</button>
+        </div>
+    </div>
+
     <script>
     const WORK_URL = "https://motore-coda.vocidicassino.workers.dev";
     let segnalato = false;
-    let sessioneIniziale = null;
-    let audioCtx = null; // Variabile globale audio per informatore
+    let audioCtx = null;
+
+    // Controllo sicurezza QR
+    const urlParams = new URLSearchParams(window.location.search);
+    const isFromQR = urlParams.has('qr');
 
     function sbloccaAudio() {
         if (!audioCtx) {
@@ -58,18 +74,44 @@
         });
     }
 
+    function mostraModalReset(msg) {
+        document.getElementById('modal-text').innerText = msg;
+        document.getElementById('custom-modal').style.display = 'flex';
+    }
+
+    function chiudiModalReset() {
+        document.getElementById('custom-modal').style.display = 'none';
+        // Rimuove i parametri dall'URL e ricarica, costringendo a usare di nuovo il QR
+        window.location.href = window.location.pathname; 
+    }
+
     async function segnalaPresenza() {
-        sbloccaAudio(); // Sblocca l'audio al tocco dell'utente
+        sbloccaAudio();
+        
+        if (!isFromQR) {
+            alert("Devi scansionare il QR Code fisico in segreteria per attivare l'app.");
+            return;
+        }
+
         try {
             const res = await fetch(`${WORK_URL}/join-info`, { method: 'POST' });
             const data = await res.json();
-            sessioneIniziale = data.sessionID;
+            
+            // Salva la sessione in modo che non si perda ricaricando la pagina
+            localStorage.setItem('info_session_id', data.sessionID);
+            localStorage.setItem('info_segnalato', 'true');
+            
             segnalato = true;
-            document.getElementById('btn').style.display = 'none';
-            document.getElementById('desc').style.display = 'none';
-            document.getElementById('status').style.display = 'block';
+            aggiornaInterfaccia();
             setInterval(controllaChiamata, 4000);
         } catch(e) { alert("Errore di connessione al server."); }
+    }
+
+    function aggiornaInterfaccia() {
+        document.getElementById('btn').style.display = 'none';
+        document.getElementById('desc').style.display = 'none';
+        document.getElementById('qr-only-msg').style.display = 'none';
+        document.getElementById('status').style.display = 'block';
     }
 
     async function controllaChiamata() {
@@ -77,11 +119,17 @@
         try {
             const res = await fetch(`${WORK_URL}/status`);
             const data = await res.json();
+            const savedSession = localStorage.getItem('info_session_id');
 
             // GESTIONE AZZERAMENTO MEDICO
-            if (sessioneIniziale && data.sessionID != sessioneIniziale) {
-                alert("⚠️ Il medico ha resettato la coda.\nLa tua prenotazione è stata annullata.");
-                location.reload(); // Ricarica la pagina facendolo ripartire da zero
+            if (savedSession && data.sessionID != savedSession) {
+                // Pulizia della memoria
+                localStorage.removeItem('info_session_id');
+                localStorage.removeItem('info_segnalato');
+                segnalato = false;
+                
+                // Mostra il popup di reset
+                mostraModalReset("⚠️ La giornata è stata azzerata dal medico.\nDevi scansionare nuovamente il QR Code per segnalare la tua presenza.");
                 return;
             }
 
@@ -95,12 +143,29 @@
                     box.classList.add('chiamata-attiva');
                     avviso.style.display = 'block';
                     text.style.display = 'none';
-                    suonaInformatore(); // Fa suonare il telefono dell'informatore
-                    segnalato = false; // Interrompe il loop del suono
+                    suonaInformatore(); 
+                    segnalato = false; // Ferma il controllo per evitare loop sonori
+                    localStorage.removeItem('info_segnalato'); // Visita accettata
                 }
             }
         } catch(e) {}
     }
-</script>
+
+    // Al caricamento della pagina, controlla se ha il QR o se è già in attesa
+    window.onload = () => {
+        const isSegnalato = localStorage.getItem('info_segnalato');
+        
+        if (!isFromQR && !isSegnalato) {
+            // Blocca l'accesso se non ha usato la fotocamera
+            document.getElementById('btn').disabled = true;
+            document.getElementById('qr-only-msg').style.display = 'block';
+        } else if (isSegnalato === 'true') {
+            // Se ha ricaricato la pagina per sbaglio ma era già in coda, ripristina la vista
+            segnalato = true;
+            aggiornaInterfaccia();
+            setInterval(controllaChiamata, 4000);
+        }
+    };
+    </script>
 </body>
 </html>
