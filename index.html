@@ -6,6 +6,7 @@
     <title>Fila - Dott. Giuseppe Martino</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="manifest" href="manifest.json">
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
         :root { --primary: #1e293b; --accent: #0ea5e9; --success: #10b981; --danger: #ef4444; --amber: #f59e0b; }
         body { font-family: 'Poppins', sans-serif; margin: 0; padding: 20px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(-45deg, #e0f2fe, #bae6fd, #f0fdf4, #e0f2fe); background-size: 400% 400%; animation: gradientBG 15s ease infinite; color: var(--primary); }
@@ -38,11 +39,17 @@
         @keyframes blinker { 50% { opacity: 0.3; } }
         @keyframes pulseTurno { 0% { transform: scale(1.05); } 50% { transform: scale(1.1); } 100% { transform: scale(1.05); } }
         
-        button { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 20px 30px; border-radius: 50px; font-size: 18px; font-weight: 600; cursor: pointer; width: 100%; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3); }
-        button:disabled { background: #94a3b8; cursor: not-allowed; box-shadow: none; }
+        button { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 20px 30px; border-radius: 50px; font-size: 18px; font-weight: 600; cursor: pointer; width: 100%; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3); transition: 0.3s; }
+        .btn-grigio { background: #94a3b8 !important; box-shadow: none !important; }
+        
         .avviso-schermo { font-size: 11px; color: #64748b; margin-top: 20px; font-weight: 600; }
+        
+        /* Stili Scanner Modificato */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(5px); align-items: center; justify-content: center; z-index: 1000; }
         .modal-box { background: white; padding: 30px; border-radius: 24px; text-align: center; width: 85%; max-width: 320px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+        #reader-container { display: none; margin-top: 15px; }
+        #reader { width: 100%; border-radius: 15px; overflow: hidden; border: 2px solid var(--accent); background: black; }
+        .btn-annulla { background: var(--danger); color: white; border: none; padding: 12px; border-radius: 12px; font-weight: bold; width: 100%; margin-top: 10px; cursor: pointer; box-shadow: none; }
     </style>
 </head>
 <body>
@@ -61,7 +68,12 @@
         
         <div id="registration-section">
             <button id="btn-prendi" onclick="prendiNumero()">PRENDI NUMERO</button>
-            <p id="qr-only-msg" style="display:none; font-size: 13px; color: var(--danger); font-weight: bold; margin-top: 15px;">⚠️ FOTOCAMERA RICHIESTA:<br>Scansiona il QR Code presente in studio per prendere il numero.</p>
+            <p id="qr-only-msg" style="display:none; font-size: 13px; color: var(--danger); font-weight: bold; margin-top: 15px;">⚠️ Tocca il tasto sopra per attivare la fotocamera e leggere il codice in studio.</p>
+
+            <div id="reader-container">
+                <div id="reader"></div>
+                <button class="btn-annulla" onclick="chiudiScanner()">Annulla</button>
+            </div>
         </div>
 
         <div id="status-section" style="display:none;">
@@ -86,12 +98,12 @@
         const WORKER_URL = "https://motore-coda.vocidicassino.workers.dev"; 
         let numeroPrecedente = -1;
         let wakeLock = null;
-        let audioCtx = null; // Variabile globale per l'audio
+        let audioCtx = null; 
+        let html5QrCode = null; // Nuovo oggetto scanner
 
         const urlParams = new URLSearchParams(window.location.search);
         const isFromQR = urlParams.has('qr');
 
-        // TRUCCO SBLOCCO AUDIO: Inizializza il motore audio al tocco dell'utente
         function sbloccaAudio() {
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -109,13 +121,12 @@
 
         function chiudiModalReset() {
             document.getElementById('custom-modal').style.display = 'none';
-            // Pulisce l'URL e riavvia la pagina, forzando la riapertura del QR
             window.location.href = window.location.pathname;
         }
 
         function suona() {
             try {
-                if (!audioCtx) return; // Se l'audio non è sbloccato, non fa nulla
+                if (!audioCtx) return; 
                 const osc = audioCtx.createOscillator(); 
                 const gain = audioCtx.createGain();
                 osc.connect(gain); gain.connect(audioCtx.destination);
@@ -126,6 +137,48 @@
             } catch(e) { console.log("Audio non supportato"); }
         }
 
+        // --- LOGICA SCANNER QR SEMPLIFICATA ---
+        function apriScanner() {
+            document.getElementById('btn-prendi').style.display = 'none';
+            document.getElementById('qr-only-msg').style.display = 'none';
+            document.getElementById('reader-container').style.display = 'block';
+
+            html5QrCode = new Html5Qrcode("reader");
+            
+            // Forza la fotocamera posteriore
+            html5QrCode.start(
+                { facingMode: "environment" }, 
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                (decodedText) => {
+                    // SE LEGGE CON SUCCESSO
+                    html5QrCode.stop().then(() => {
+                        if (decodedText.includes("index.html")) {
+                            window.location.href = decodedText; // Ricarica la pagina con i permessi sbloccati
+                        } else {
+                            alert("❌ QR Code errato. Assicurati di inquadrare il cartello dei PAZIENTI.");
+                            chiudiScanner();
+                        }
+                    });
+                },
+                (errorMessage) => {
+                    // Ignora errori di background continui
+                }
+            ).catch((err) => {
+                alert("Errore fotocamera. Assicurati di aver dato i permessi al browser.");
+                chiudiScanner();
+            });
+        }
+
+        function chiudiScanner() {
+            if (html5QrCode) {
+                html5QrCode.stop().catch(e => {});
+            }
+            document.getElementById('reader-container').style.display = 'none';
+            document.getElementById('btn-prendi').style.display = 'block';
+            document.getElementById('qr-only-msg').style.display = 'block';
+        }
+        // -------------------------
+
         async function aggiorna() {
             try {
                 const res = await fetch(`${WORKER_URL}/status`); 
@@ -134,7 +187,6 @@
                 const savedSession = localStorage.getItem('session_id');
                 const savedTicket = localStorage.getItem('paziente_ticket');
 
-                // SE LA SESSIONE È AZZERATA DAL MEDICO
                 if (savedSession && savedSession != data.sessionID) {
                     localStorage.clear();
                     mostraModalReset("⚠️ La giornata lavorativa è stata azzerata.\nDevi scansionare nuovamente il QR Code in studio per partecipare.");
@@ -172,10 +224,10 @@
         }
 
         async function prendiNumero() {
-            sbloccaAudio(); // Fondamentale: sblocca le casse del telefono al click
+            sbloccaAudio(); 
             
             if (!isFromQR) {
-                alert("Devi scansionare il QR Code fisico presente in studio.");
+                alert("Devi scansionare il QR Code fisico presente in studio per attivare l'app.");
                 return;
             }
             try {
@@ -187,16 +239,20 @@
                 document.getElementById('registration-section').style.display = 'none';
                 document.getElementById('status-section').style.display = 'block';
                 mantieniSchermoSveglio(); 
-                suona(); // Emette un suono di conferma
+                suona(); 
             } catch(e) { mostraModalReset("Errore di connessione al server."); }
         }
 
         window.onload = () => {
             const savedTicket = localStorage.getItem('paziente_ticket');
             
-            // Se l'utente non ha un ticket e non proviene dal QR
             if (!savedTicket && !isFromQR) {
-                document.getElementById('btn-prendi').disabled = true;
+                // Modifica il tasto in uno scanner senza UI ingombrante
+                const btn = document.getElementById('btn-prendi');
+                btn.innerText = "📷 INQUADRA QR CODE";
+                btn.classList.add('btn-grigio');
+                btn.onclick = apriScanner;
+                
                 document.getElementById('qr-only-msg').style.display = 'block';
             } else if (savedTicket) {
                 document.getElementById('my-number-display').innerText = savedTicket;
