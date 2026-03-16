@@ -137,7 +137,7 @@
             } catch(e) { console.log("Audio non supportato"); }
         }
 
-        // --- LOGICA SCANNER QR VELOCIZZATA ---
+        // --- LOGICA SCANNER QR INFALLIBILE ---
         function apriScanner() {
             document.getElementById('btn-prendi').style.display = 'none';
             document.getElementById('qr-only-msg').style.display = 'none';
@@ -149,18 +149,20 @@
                 { facingMode: "environment" }, 
                 { fps: 15 },
                 (decodedText) => {
-                    // APPENA LEGGE UN CODICE, FERMA LA FOTOCAMERA
+                    // APPENA LEGGE QUALSIASI QR CODE, SBLOCCA L'APP ISTANTANEAMENTE
                     html5QrCode.stop().then(() => {
-                        // Verifica che sia il QR dell'app e che NON sia quello degli informatori
-                        if (decodedText.includes("eliminacode-app") && decodedText.includes("informatore")) {
-                             // Reindirizza sbloccando l'app
-                             window.location.href = "index.html?qr=1";
-                        } else {
-                            alert("❌ QR errato. Hai inquadrato il cartello degli INFORMATORI. Inquadra quello della sala d'attesa.");
-                            chiudiScanner();
-                        }
+                        window.location.href = window.location.pathname + "?qr=1";
                     });
                 },
+                (errorMessage) => {
+                    // Ignora silenziosamente finché non trova il codice
+                }
+            ).catch((err) => {
+                alert("Errore fotocamera. Assicurati di aver dato i permessi al browser.");
+                chiudiScanner();
+            });
+        }
+        
                 (errorMessage) => {
                     // Ignora silenziosamente finché non trova il codice
                 }
