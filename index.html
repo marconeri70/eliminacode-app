@@ -145,17 +145,16 @@
 
             html5QrCode = new Html5Qrcode("reader");
             
-            // Rimossa l'opzione "qrbox" per permettere alla fotocamera di leggere in tutto lo schermo (molto più veloce)
             html5QrCode.start(
                 { facingMode: "environment" }, 
                 { fps: 15 },
                 (decodedText) => {
                     // APPENA LEGGE UN CODICE, FERMA LA FOTOCAMERA
                     html5QrCode.stop().then(() => {
-                        // Verifica che sia il QR giusto (deve contenere l'url dell'app pazienti, non quello dell'informatore)
-                        if (decodedText.includes("eliminacode-app") && decodedText.includes("index.html?qr=1")) {
-                             // Reindirizza direttamente all'URL esatto letto dal QR!
-                             window.location.href = decodedText;
+                        // Verifica che sia il QR dell'app e che NON sia quello degli informatori
+                        if (decodedText.includes("eliminacode-app") && !decodedText.includes("informatore")) {
+                             // Reindirizza sbloccando l'app
+                             window.location.href = "index.html?qr=1";
                         } else {
                             alert("❌ QR errato. Hai inquadrato il cartello degli INFORMATORI. Inquadra quello della sala d'attesa.");
                             chiudiScanner();
