@@ -137,7 +137,7 @@
             } catch(e) { console.log("Audio non supportato"); }
         }
 
-        // --- LOGICA SCANNER QR INFALLIBILE ---
+        // --- LOGICA SCANNER QR INFALLIBILE E CORRETTA ---
         function apriScanner() {
             document.getElementById('btn-prendi').style.display = 'none';
             document.getElementById('qr-only-msg').style.display = 'none';
@@ -162,16 +162,6 @@
                 chiudiScanner();
             });
         }
-        
-                (errorMessage) => {
-                    // Ignora silenziosamente finché non trova il codice
-                }
-            ).catch((err) => {
-                alert("Errore fotocamera. Assicurati di aver dato i permessi al browser.");
-                chiudiScanner();
-            });
-        }
-     },
 
         function chiudiScanner() {
             if (html5QrCode) {
