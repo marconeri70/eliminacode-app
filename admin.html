@@ -25,12 +25,13 @@
         input[type="password"]:focus { border-color: var(--neon-green); }
 
         /* Numerazione */
-        .numero-attuale { font-size: 110px; font-weight: 800; color: var(--neon-green); line-height: 1; margin: 15px 0; text-shadow: 0 0 30px rgba(16, 185, 129, 0.4); }
+        .numero-attuale { font-size: 110px; font-weight: 800; color: var(--neon-green); line-height: 1; margin: 15px 0; text-shadow: 0 0 30px rgba(16, 185, 129, 0.4); transition: 0.3s; }
+        .numero-info { font-size: 70px; color: var(--amber); text-shadow: 0 0 30px rgba(245, 158, 11, 0.4); }
         
         /* Stats & Informatori */
         .stats-container { display: flex; flex-direction: column; gap: 10px; margin-bottom: 25px; }
         .stats { background: rgba(0,0,0,0.2); padding: 12px; border-radius: 15px; font-size: 14px; font-weight: 600; color: #cbd5e1; }
-        .badge-info { background: var(--amber); color: #422006; padding: 5px 12px; border-radius: 20px; font-size: 12px; display: inline-block; margin-top: 5px; animation: pulseAmber 2s infinite; }
+        .badge-info { background: var(--amber); color: #422006; padding: 5px 12px; border-radius: 20px; font-size: 12px; display: inline-block; margin-top: 5px; animation: pulseAmber 2s infinite; font-weight: bold; }
         
         @keyframes pulseAmber { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 
@@ -39,15 +40,12 @@
         button:active { transform: scale(0.96); }
         
         .btn-chiama { background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2); }
-        .btn-info { background: var(--amber); color: #422006; font-size: 15px; }
+        .btn-info { background: transparent; border: 2px solid var(--amber); color: var(--amber); font-size: 15px; }
         
         .row-buttons { display: flex; gap: 10px; }
         .btn-azzera { background: #334155; font-size: 14px; }
         .btn-pin { background: rgba(255,255,255,0.1); font-size: 14px; }
         .btn-login { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
-
-        /* Avviso Regola Informatore */
-        #suggest-info { display: none; background: rgba(245, 158, 11, 0.1); border: 1px solid var(--amber); color: var(--amber); padding: 10px; border-radius: 12px; font-size: 12px; margin-bottom: 15px; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -67,8 +65,6 @@
         
         <div class="numero-attuale" id="curr">--</div>
         
-        <div id="suggest-info">⚠️ Suggerimento: Sono entrati 2 pazienti, ora toccherebbe all'informatore.</div>
-
         <div class="stats-container">
             <div class="stats" id="info-coda">Sincronizzazione...</div>
             <div id="info-badge-container" style="display:none;">
@@ -77,7 +73,7 @@
         </div>
 
         <button class="btn-chiama" onclick="prossimo()">🔊 CHIAMA PROSSIMO</button>
-        <button id="btn-chiama-info" class="btn-info" onclick="chiamaInformatore()" style="display:none;">💼 FA ENTRARE INFORMATORE</button>
+        <button id="btn-chiama-info" class="btn-info" onclick="chiamaInformatoreManuale()" style="display:none;">⚠️ FORZA CHIAMATA INFORMATORE ORA</button>
 
         <div class="row-buttons">
             <button class="btn-azzera" onclick="azzera()">🔄 Azzera</button>
@@ -88,7 +84,6 @@
     <script>
         const WORKER_URL = "https://motore-coda.vocidicassino.workers.dev"; 
         let pinAttualeSalvato = ""; 
-        let pazientiChiamatiConsecutivi = 0;
 
         async function verificaPin() {
             const pinInserito = document.getElementById('pin-input').value;
@@ -99,7 +94,7 @@
                     pinAttualeSalvato = pinInserito;
                     document.getElementById('login-screen').style.display = 'none';
                     document.getElementById('app-content').style.display = 'block';
-                    caricaDati(); setInterval(caricaDati, 5000);
+                    caricaDati(); setInterval(caricaDati, 4000);
                 } else {
                     document.getElementById('errore-pin').style.display = 'block';
                     document.getElementById('pin-input').value = ""; 
@@ -111,63 +106,66 @@
             try {
                 const res = await fetch(`${WORKER_URL}/status`); 
                 const data = await res.json();
-                document.getElementById('curr').innerText = data.attuale;
                 
-                const inAttesa = data.ultimoAssegnato - data.attuale;
+                const currDisplay = document.getElementById('curr');
+
+                // Se l'informatore è in visita, mostra INFO in arancione, altrimenti il numero del paziente
+                if (data.infoInVisita) {
+                    currDisplay.innerHTML = "💼 INFO";
+                    currDisplay.className = "numero-attuale numero-info";
+                } else {
+                    currDisplay.innerText = data.ticketAttuale || 0;
+                    currDisplay.className = "numero-attuale";
+                }
+                
+                // Statistiche Pazienti
+                const inAttesa = (data.ultimoTicket || 0) - (data.ticketAttuale || 0);
                 document.getElementById('info-coda').innerText = `⏳ Pazienti in attesa: ${inAttesa > 0 ? inAttesa : 0}`;
 
-                // Gestione Informatori
-                const numInfo = data.informatori || 0;
+                // Statistiche Informatori
+                const numInfo = data.informatoriInCoda || 0;
                 const badgeContainer = document.getElementById('info-badge-container');
                 const btnInfo = document.getElementById('btn-chiama-info');
-                const suggest = document.getElementById('suggest-info');
 
                 if (numInfo > 0) {
                     badgeContainer.style.display = 'block';
                     document.getElementById('count-info').innerText = numInfo;
-                    btnInfo.style.display = 'block';
                     
-                    // Suggerimento regola "Ogni 2 pazienti, 1 informatore"
-                    if (pazientiChiamatiConsecutivi >= 2) {
-                        suggest.style.display = 'block';
+                    // Mostra il tasto di "Forzatura" solo se l'informatore non è già in studio
+                    if (!data.infoInVisita) {
+                        btnInfo.style.display = 'block';
                     } else {
-                        suggest.style.display = 'none';
+                        btnInfo.style.display = 'none';
                     }
                 } else {
                     badgeContainer.style.display = 'none';
                     btnInfo.style.display = 'none';
-                    suggest.style.display = 'none';
                 }
             } catch (e) {}
         }
 
         async function prossimo() {
             try {
+                // Il server deciderà in automatico se chiamare un paziente o un informatore!
                 const res = await fetch(`${WORKER_URL}/next`, { method: 'POST' });
-                const data = await res.json();
-                pazientiChiamatiConsecutivi++;
-                document.getElementById('curr').innerText = data.attuale;
+                await res.json();
                 caricaDati(); 
             } catch (e) {}
         }
 
-        async function chiamaInformatore() {
-            if (!confirm("Vuoi far entrare l'informatore? Il numero dei pazienti resterà fermo.")) return;
+        async function chiamaInformatoreManuale() {
+            if (!confirm("Vuoi FORZARE l'entrata dell'informatore scavalcando la fila automatica?")) return;
             try {
-                await fetch(`${WORKER_URL}/next-info`, { method: 'POST' });
-                pazientiChiamatiConsecutivi = 0; // Reset contatore pazienti dopo l'informatore
-                alert("💼 Informatore chiamato correttamente.");
+                await fetch(`${WORKER_URL}/call-info`, { method: 'POST' });
                 caricaDati();
             } catch (e) {}
         }
 
         async function azzera() {
-            if (!confirm("⚠️ Sicuro di voler resettare tutto? Anche gli informatori verranno azzerati.")) return;
+            if (!confirm("⚠️ Sicuro di voler resettare tutto? Tutti i numeri e le code verranno azzerati.")) return;
             try {
                 const res = await fetch(`${WORKER_URL}/reset`, { method: 'POST' });
-                const data = await res.json();
-                pazientiChiamatiConsecutivi = 0;
-                document.getElementById('curr').innerText = data.attuale;
+                await res.json();
                 caricaDati();
             } catch (e) {}
         }
