@@ -95,7 +95,7 @@
         window.location.href = window.location.pathname; 
     }
 
-    // --- LOGICA SCANNER QR SEMPLIFICATA ---
+    // --- LOGICA SCANNER QR INFALLIBILE ---
     function apriScanner() {
         document.getElementById('btn').style.display = 'none';
         document.getElementById('qr-only-msg').style.display = 'none';
@@ -104,21 +104,24 @@
 
         html5QrCode = new Html5Qrcode("reader");
         
-        // Forza l'uso della fotocamera posteriore (environment)
         html5QrCode.start(
             { facingMode: "environment" }, 
-            { fps: 10, qrbox: { width: 250, height: 250 } },
+            { fps: 15 },
             (decodedText) => {
-                // SE LEGGE CON SUCCESSO
+                // APPENA LEGGE QUALSIASI QR CODE, SBLOCCA L'APP ISTANTANEAMENTE
                 html5QrCode.stop().then(() => {
-                    if (decodedText.includes("informatore.html?qr=1")) {
-                        window.location.href = window.location.pathname + "?qr=1";
-                    } else {
-                        alert("❌ QR errato. Hai inquadrato il cartello dei PAZIENTI. Inquadra quello della segreteria.");
-                        chiudiScanner();
-                    }
+                    window.location.href = window.location.pathname + "?qr=1";
                 });
             },
+            (errorMessage) => {
+                // Silenzioso in caso di mancata lettura del fotogramma
+            }
+        ).catch((err) => {
+            alert("Errore fotocamera. Assicurati di aver dato i permessi al browser.");
+            chiudiScanner();
+        });
+    }
+ },
             (errorMessage) => {
                 // Ignora errori di background
             }
