@@ -23,9 +23,9 @@
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(5px); align-items: center; justify-content: center; z-index: 1000; }
         .modal-box { background: white; padding: 30px; border-radius: 24px; text-align: center; width: 85%; max-width: 320px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
         
-        /* Stile area scanner */
+        /* Stili Scanner Modificato */
         #reader-container { display: none; margin-top: 15px; }
-        #reader { width: 100%; border-radius: 15px; overflow: hidden; border: 2px solid var(--primary); }
+        #reader { width: 100%; border-radius: 15px; overflow: hidden; border: 2px solid var(--primary); background: black; }
         .btn-annulla { background: var(--danger); color: white; border: none; padding: 12px; border-radius: 12px; font-weight: bold; width: 100%; margin-top: 10px; cursor: pointer; }
     </style>
 </head>
@@ -35,7 +35,7 @@
         <p id="desc">Segnala la tua presenza in segreteria per metterti in coda.</p>
         
         <button id="btn" class="btn-segnala" onclick="segnalaPresenza()">SEGNALA PRESENZA</button>
-        <p id="qr-only-msg" style="display:none; font-size: 13px; color: var(--danger); font-weight: bold; margin-top: 15px;">⚠️ Tocca il tasto sopra per attivare lo scanner.</p>
+        <p id="qr-only-msg" style="display:none; font-size: 13px; color: var(--danger); font-weight: bold; margin-top: 15px;">⚠️ Tocca il tasto sopra per attivare la fotocamera e leggere il codice in segreteria.</p>
 
         <div id="reader-container">
             <div id="reader"></div>
@@ -60,9 +60,8 @@
     let segnalato = false;
     let chiamataRicevuta = false; 
     let audioCtx = null;
-    let html5QrcodeScanner = null;
+    let html5QrCode = null; // Nuovo oggetto scanner
 
-    // Controllo sicurezza QR
     const urlParams = new URLSearchParams(window.location.search);
     const isFromQR = urlParams.has('qr');
 
@@ -96,36 +95,48 @@
         window.location.href = window.location.pathname; 
     }
 
-    // --- LOGICA SCANNER QR ---
+    // --- LOGICA SCANNER QR SEMPLIFICATA ---
     function apriScanner() {
         document.getElementById('btn').style.display = 'none';
         document.getElementById('qr-only-msg').style.display = 'none';
         document.getElementById('desc').style.display = 'none';
         document.getElementById('reader-container').style.display = 'block';
 
-        html5QrcodeScanner = new Html5QrcodeScanner(
-            "reader", { fps: 10, qrbox: {width: 250, height: 250} }, false);
-        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+        html5QrCode = new Html5Qrcode("reader");
+        
+        // Forza l'uso della fotocamera posteriore (environment)
+        html5QrCode.start(
+            { facingMode: "environment" }, 
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            (decodedText) => {
+                // SE LEGGE CON SUCCESSO
+                html5QrCode.stop().then(() => {
+                    if (decodedText.includes("informatore.html")) {
+                        window.location.href = decodedText; // Ricarica sbloccato
+                    } else {
+                        alert("❌ QR Code errato. Assicurati di inquadrare il cartello INFORMATORI.");
+                        chiudiScanner();
+                    }
+                });
+            },
+            (errorMessage) => {
+                // Ignora errori di background
+            }
+        ).catch((err) => {
+            alert("Errore fotocamera. Assicurati di aver dato i permessi al browser.");
+            chiudiScanner();
+        });
     }
 
     function chiudiScanner() {
-        if (html5QrcodeScanner) { html5QrcodeScanner.clear(); }
+        if (html5QrCode) {
+            html5QrCode.stop().catch(e => {});
+        }
         document.getElementById('reader-container').style.display = 'none';
         document.getElementById('btn').style.display = 'block';
         document.getElementById('qr-only-msg').style.display = 'block';
         document.getElementById('desc').style.display = 'block';
     }
-
-    function onScanSuccess(decodedText, decodedResult) {
-        // Se scansiona il QR corretto, lo reindirizza al link esatto (con ?qr=1)
-        if (decodedText.includes("informatore.html")) {
-            window.location.href = decodedText;
-        } else {
-            alert("QR Code non valido.");
-        }
-    }
-
-    function onScanFailure(error) { /* Ignora gli errori di lettura continui */ }
     // -------------------------
 
     async function segnalaPresenza() {
@@ -190,11 +201,11 @@
         const isSegnalato = localStorage.getItem('info_segnalato');
         
         if (!isFromQR && !isSegnalato) {
-            // Se manca il parametro, trasforma il pulsante in uno scanner
+            // Se manca il parametro, il tasto diventa uno scanner automatico
             const btn = document.getElementById('btn');
             btn.innerText = "📷 INQUADRA QR CODE";
             btn.classList.add('btn-grigio');
-            btn.onclick = apriScanner; // Sostituisce la funzione originale
+            btn.onclick = apriScanner; 
             
             document.getElementById('qr-only-msg').style.display = 'block';
         } else if (isSegnalato === 'true') {
