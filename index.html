@@ -99,7 +99,7 @@
         let numeroPrecedente = -1;
         let wakeLock = null;
         let audioCtx = null; 
-        let html5QrCode = null; // Nuovo oggetto scanner
+        let html5QrCode = null;
 
         const urlParams = new URLSearchParams(window.location.search);
         const isFromQR = urlParams.has('qr');
@@ -137,7 +137,7 @@
             } catch(e) { console.log("Audio non supportato"); }
         }
 
-        // --- LOGICA SCANNER QR SEMPLIFICATA ---
+        // --- LOGICA SCANNER QR VELOCIZZATA ---
         function apriScanner() {
             document.getElementById('btn-prendi').style.display = 'none';
             document.getElementById('qr-only-msg').style.display = 'none';
@@ -145,15 +145,17 @@
 
             html5QrCode = new Html5Qrcode("reader");
             
-            // Forza la fotocamera posteriore
+            // Rimossa l'opzione "qrbox" per permettere alla fotocamera di leggere in tutto lo schermo (molto più veloce)
             html5QrCode.start(
                 { facingMode: "environment" }, 
-                { fps: 10, qrbox: { width: 250, height: 250 } },
+                { fps: 15 },
                 (decodedText) => {
-                    // SE LEGGE CON SUCCESSO
+                    // APPENA LEGGE UN CODICE, FERMA LA FOTOCAMERA
                     html5QrCode.stop().then(() => {
+                        // Verifica che sia il QR giusto (deve contenere l'url dell'app pazienti, non quello dell'informatore)
                         if (decodedText.includes("eliminacode-app") && !decodedText.includes("informatore")) {
-                             window.location.href = window.location.pathname + "?qr=1";
+                             // Reindirizza direttamente all'URL esatto letto dal QR!
+                             window.location.href = decodedText;
                         } else {
                             alert("❌ QR errato. Hai inquadrato il cartello degli INFORMATORI. Inquadra quello della sala d'attesa.");
                             chiudiScanner();
@@ -161,7 +163,7 @@
                     });
                 },
                 (errorMessage) => {
-                    // Ignora errori di background continui
+                    // Ignora silenziosamente finché non trova il codice
                 }
             ).catch((err) => {
                 alert("Errore fotocamera. Assicurati di aver dato i permessi al browser.");
@@ -247,7 +249,6 @@
             const savedTicket = localStorage.getItem('paziente_ticket');
             
             if (!savedTicket && !isFromQR) {
-                // Modifica il tasto in uno scanner senza UI ingombrante
                 const btn = document.getElementById('btn-prendi');
                 btn.innerText = "📷 INQUADRA QR CODE";
                 btn.classList.add('btn-grigio');
