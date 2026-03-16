@@ -34,67 +34,65 @@
     </div>
 
     <script>
-        const WORK_URL = "https://motore-coda.vocidicassino.workers.dev";
-        let segnalato = false;
-        let conteggioIniziale = 0;
+    const WORK_URL = "https://motore-coda.vocidicassino.workers.dev";
+    let segnalato = false;
+    let sessioneIniziale = null;
 
-        // SUONO SPECIFICO PER INFORMATORE (Doppio trillo)
-        function suonaInformatore() {
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                [440, 660].forEach((freq, i) => {
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    osc.connect(gain); gain.connect(ctx.destination);
-                    osc.frequency.setValueAtTime(freq, ctx.currentTime + (i * 0.15));
-                    gain.gain.setValueAtTime(0.1, ctx.currentTime + (i * 0.15));
-                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + (i * 0.15) + 0.4);
-                    osc.start(ctx.currentTime + (i * 0.15));
-                    osc.stop(ctx.currentTime + (i * 0.15) + 0.4);
-                });
-            } catch(e) { console.log("Audio non supportato"); }
-        }
+    function suonaInformatore() {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        [440, 660, 880].forEach((freq, i) => { // Trillo a tre toni
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.frequency.setValueAtTime(freq, ctx.currentTime + (i * 0.1));
+            gain.gain.setValueAtTime(0.1, ctx.currentTime + (i * 0.1));
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + (i * 0.1) + 0.3);
+            osc.start(ctx.currentTime + (i * 0.1));
+            osc.stop(ctx.currentTime + (i * 0.1) + 0.3);
+        });
+    }
 
-        async function segnalaPresenza() {
-            try {
-                // Segnala al server l'arrivo dell'informatore
-                await fetch(`${WORK_URL}/join-info`, { method: 'POST' });
+    async function segnalaPresenza() {
+        try {
+            const res = await fetch(`${WORK_URL}/join-info`, { method: 'POST' });
+            const data = await res.json();
+            sessioneIniziale = data.sessionID;
+            segnalato = true;
+            document.getElementById('btn').style.display = 'none';
+            document.getElementById('status').style.display = 'block';
+            setInterval(controllaChiamata, 4000);
+        } catch(e) { alert("Errore di connessione."); }
+    }
+
+    async function controllaChiamata() {
+        if (!segnalato) return;
+        try {
+            const res = await fetch(`${WORK_URL}/status`);
+            const data = await res.json();
+
+            // Reset forzato se il medico azzera la giornata
+            if (sessioneIniziale && data.sessionID != sessioneIniziale) {
+                alert("Sessione terminata. Riscansiona il codice.");
+                location.reload();
+                return;
+            }
+
+            // Se infoInVisita è vero, il medico ha chiamato l'informatore
+            if (data.infoInVisita) {
+                const box = document.getElementById('status');
+                const avviso = document.getElementById('avviso-chiamata');
+                const text = document.getElementById('status-text');
                 
-                // Prende lo stato attuale per sapere quanti ce ne sono
-                const res = await fetch(`${WORK_URL}/status`);
-                const data = await res.json();
-                
-                conteggioIniziale = data.informatori;
-                segnalato = true;
-
-                document.getElementById('btn').style.display = 'none';
-                document.getElementById('desc').style.display = 'none';
-                document.getElementById('status').style.display = 'block';
-                
-                // Controlla ogni 4 secondi se il medico lo chiama
-                setInterval(controllaChiamata, 4000);
-            } catch(e) { alert("Errore di connessione."); }
-        }
-
-        async function controllaChiamata() {
-           if (!segnalato) return;
-           try {
-               const res = await fetch(`${WORK_URL}/status`);
-               const data = await res.json();
-
-               // Se il medico resetta tutto, l'informatore viene avvisato
-              if (data.sessionID != sessioneIniziale) {
-                  alert("Il medico ha resettato la sessione. Segnalati nuovamente se necessario.");
-                  location.reload();
-                  return;
-             }
-
-              if (data.informatori < conteggioIniziale) {
-                  // ... logica chiamata attiva e suono ...
-                  segnalato = false;
-             }
-          } catch(e) {}
-       }
-    </script>
+                if (avviso.style.display === 'none') {
+                    box.classList.add('chiamata-attiva');
+                    avviso.style.display = 'block';
+                    text.style.display = 'none';
+                    suonaInformatore(); // Suona solo sul telefono dell'informatore
+                    segnalato = false;
+                }
+            }
+        } catch(e) {}
+    }
+</script>
 </body>
 </html>
