@@ -5,12 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Area Informatori - Studio Martino</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
         :root { --primary: #0f172a; --accent: #f59e0b; --success: #10b981; --danger: #ef4444; }
         body { font-family: 'Poppins', sans-serif; background: #f1f5f9; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; text-align: center; }
         .card { background: white; padding: 40px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
         .btn-segnala { background: var(--primary); color: white; border: none; padding: 20px; border-radius: 15px; font-size: 18px; font-weight: 700; cursor: pointer; width: 100%; transition: 0.3s; }
-        .btn-segnala:disabled { background: #94a3b8; cursor: not-allowed; }
+        .btn-grigio { background: #94a3b8 !important; }
         .status-box { display: none; padding: 30px; border-radius: 15px; background: #f8fafc; border: 2px dashed #cbd5e1; margin-top: 20px; }
         
         .chiamata-attiva { background: var(--accent) !important; border: none !important; animation: pulse 1.5s infinite; color: #422006; }
@@ -19,9 +20,13 @@
         h1 { font-size: 22px; margin-bottom: 10px; }
         .avviso-testo { font-weight: 800; font-size: 26px; line-height: 1.2; }
         
-        /* Stili per il popup di reset */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(5px); align-items: center; justify-content: center; z-index: 1000; }
         .modal-box { background: white; padding: 30px; border-radius: 24px; text-align: center; width: 85%; max-width: 320px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+        
+        /* Stile area scanner */
+        #reader-container { display: none; margin-top: 15px; }
+        #reader { width: 100%; border-radius: 15px; overflow: hidden; border: 2px solid var(--primary); }
+        .btn-annulla { background: var(--danger); color: white; border: none; padding: 12px; border-radius: 12px; font-weight: bold; width: 100%; margin-top: 10px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -30,7 +35,12 @@
         <p id="desc">Segnala la tua presenza in segreteria per metterti in coda.</p>
         
         <button id="btn" class="btn-segnala" onclick="segnalaPresenza()">SEGNALA PRESENZA</button>
-        <p id="qr-only-msg" style="display:none; font-size: 13px; color: var(--danger); font-weight: bold; margin-top: 15px;">⚠️ FOTOCAMERA RICHIESTA:<br>Scansiona il QR Code in segreteria per attivare il tasto.</p>
+        <p id="qr-only-msg" style="display:none; font-size: 13px; color: var(--danger); font-weight: bold; margin-top: 15px;">⚠️ Tocca il tasto sopra per attivare lo scanner.</p>
+
+        <div id="reader-container">
+            <div id="reader"></div>
+            <button class="btn-annulla" onclick="chiudiScanner()">Annulla</button>
+        </div>
 
         <div id="status" class="status-box">
             <p id="status-text">Presenza inviata correttamente.<br><br><small>Riceverai un avviso sonoro quando il medico ti chiamerà.</small></p>
@@ -48,8 +58,9 @@
     <script>
     const WORK_URL = "https://motore-coda.vocidicassino.workers.dev";
     let segnalato = false;
-    let chiamataRicevuta = false; // NUOVO: serve per non far suonare all'infinito senza bloccare l'ascolto
+    let chiamataRicevuta = false; 
     let audioCtx = null;
+    let html5QrcodeScanner = null;
 
     // Controllo sicurezza QR
     const urlParams = new URLSearchParams(window.location.search);
@@ -82,23 +93,48 @@
 
     function chiudiModalReset() {
         document.getElementById('custom-modal').style.display = 'none';
-        // Rimuove i parametri dall'URL e ricarica, costringendo a usare di nuovo il QR
         window.location.href = window.location.pathname; 
     }
+
+    // --- LOGICA SCANNER QR ---
+    function apriScanner() {
+        document.getElementById('btn').style.display = 'none';
+        document.getElementById('qr-only-msg').style.display = 'none';
+        document.getElementById('desc').style.display = 'none';
+        document.getElementById('reader-container').style.display = 'block';
+
+        html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader", { fps: 10, qrbox: {width: 250, height: 250} }, false);
+        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    }
+
+    function chiudiScanner() {
+        if (html5QrcodeScanner) { html5QrcodeScanner.clear(); }
+        document.getElementById('reader-container').style.display = 'none';
+        document.getElementById('btn').style.display = 'block';
+        document.getElementById('qr-only-msg').style.display = 'block';
+        document.getElementById('desc').style.display = 'block';
+    }
+
+    function onScanSuccess(decodedText, decodedResult) {
+        // Se scansiona il QR corretto, lo reindirizza al link esatto (con ?qr=1)
+        if (decodedText.includes("informatore.html")) {
+            window.location.href = decodedText;
+        } else {
+            alert("QR Code non valido.");
+        }
+    }
+
+    function onScanFailure(error) { /* Ignora gli errori di lettura continui */ }
+    // -------------------------
 
     async function segnalaPresenza() {
         sbloccaAudio();
         
-        if (!isFromQR) {
-            alert("Devi scansionare il QR Code fisico in segreteria per attivare l'app.");
-            return;
-        }
-
         try {
             const res = await fetch(`${WORK_URL}/join-info`, { method: 'POST' });
             const data = await res.json();
             
-            // Salva la sessione in modo che non si perda ricaricando la pagina
             localStorage.setItem('info_session_id', data.sessionID);
             localStorage.setItem('info_segnalato', 'true');
             
@@ -123,20 +159,16 @@
             const data = await res.json();
             const savedSession = localStorage.getItem('info_session_id');
 
-            // GESTIONE AZZERAMENTO MEDICO (Adesso continua ad ascoltare sempre!)
             if (savedSession && data.sessionID != savedSession) {
-                // Pulizia della memoria
                 localStorage.removeItem('info_session_id');
                 localStorage.removeItem('info_segnalato');
                 segnalato = false;
                 chiamataRicevuta = false;
                 
-                // Mostra il popup di reset
                 mostraModalReset("⚠️ La giornata è stata azzerata dal medico.\nDevi scansionare nuovamente il QR Code per segnalare la tua presenza.");
                 return;
             }
 
-            // GESTIONE CHIAMATA (infoInVisita)
             if (data.infoInVisita && !chiamataRicevuta) {
                 const box = document.getElementById('status');
                 const avviso = document.getElementById('avviso-chiamata');
@@ -147,23 +179,25 @@
                     avviso.style.display = 'block';
                     text.style.display = 'none';
                     suonaInformatore(); 
-                    chiamataRicevuta = true; // Impedisce il loop del suono, ma NON spegne l'ascolto verso il server!
+                    chiamataRicevuta = true; 
                     localStorage.removeItem('info_segnalato'); 
                 }
             }
         } catch(e) {}
     }
 
-    // Al caricamento della pagina, controlla se ha il QR o se è già in attesa
     window.onload = () => {
         const isSegnalato = localStorage.getItem('info_segnalato');
         
         if (!isFromQR && !isSegnalato) {
-            // Blocca l'accesso se non ha usato la fotocamera
-            document.getElementById('btn').disabled = true;
+            // Se manca il parametro, trasforma il pulsante in uno scanner
+            const btn = document.getElementById('btn');
+            btn.innerText = "📷 INQUADRA QR CODE";
+            btn.classList.add('btn-grigio');
+            btn.onclick = apriScanner; // Sostituisce la funzione originale
+            
             document.getElementById('qr-only-msg').style.display = 'block';
         } else if (isSegnalato === 'true') {
-            // Se ha ricaricato la pagina per sbaglio ma era già in coda, ripristina la vista
             segnalato = true;
             aggiornaInterfaccia();
             setInterval(controllaChiamata, 4000);
