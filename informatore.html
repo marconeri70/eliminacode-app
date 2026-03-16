@@ -6,13 +6,12 @@
     <title>Area Informatori - Studio Martino</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #0f172a; --accent: #f59e0b; --success: #10b981; }
+        :root { --primary: #0f172a; --accent: #f59e0b; --success: #10b981; --danger: #ef4444; }
         body { font-family: 'Poppins', sans-serif; background: #f1f5f9; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; text-align: center; }
         .card { background: white; padding: 40px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
         .btn-segnala { background: var(--primary); color: white; border: none; padding: 20px; border-radius: 15px; font-size: 18px; font-weight: 700; cursor: pointer; width: 100%; transition: 0.3s; }
         .status-box { display: none; padding: 30px; border-radius: 15px; background: #f8fafc; border: 2px dashed #cbd5e1; margin-top: 20px; }
         
-        /* Stile quando il medico chiama l'informatore */
         .chiamata-attiva { background: var(--accent) !important; border: none !important; animation: pulse 1.5s infinite; color: #422006; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
         
@@ -28,7 +27,7 @@
         <button id="btn" class="btn-segnala" onclick="segnalaPresenza()">SEGNALA PRESENZA</button>
 
         <div id="status" class="status-box">
-            <p id="status-text">Presenza inviata correttamente.<br><br><small>Riceverai un avviso sonoro quando il medico sarà pronto.</small></p>
+            <p id="status-text">Presenza inviata correttamente.<br><br><small>Riceverai un avviso sonoro quando il medico ti chiamerà.</small></p>
             <div id="avviso-chiamata" style="display:none;" class="avviso-testo">💼<br>È IL TUO TURNO!<br>ENTRA ORA</div>
         </div>
     </div>
@@ -37,31 +36,40 @@
     const WORK_URL = "https://motore-coda.vocidicassino.workers.dev";
     let segnalato = false;
     let sessioneIniziale = null;
+    let audioCtx = null; // Variabile globale audio per informatore
+
+    function sbloccaAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    }
 
     function suonaInformatore() {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        [440, 660, 880].forEach((freq, i) => { // Trillo a tre toni
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain); gain.connect(ctx.destination);
-            osc.frequency.setValueAtTime(freq, ctx.currentTime + (i * 0.1));
-            gain.gain.setValueAtTime(0.1, ctx.currentTime + (i * 0.1));
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + (i * 0.1) + 0.3);
-            osc.start(ctx.currentTime + (i * 0.1));
-            osc.stop(ctx.currentTime + (i * 0.1) + 0.3);
+        if (!audioCtx) return;
+        [440, 660, 880].forEach((freq, i) => { 
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime + (i * 0.15));
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime + (i * 0.15));
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + (i * 0.15) + 0.3);
+            osc.start(audioCtx.currentTime + (i * 0.15));
+            osc.stop(audioCtx.currentTime + (i * 0.15) + 0.3);
         });
     }
 
     async function segnalaPresenza() {
+        sbloccaAudio(); // Sblocca l'audio al tocco dell'utente
         try {
             const res = await fetch(`${WORK_URL}/join-info`, { method: 'POST' });
             const data = await res.json();
             sessioneIniziale = data.sessionID;
             segnalato = true;
             document.getElementById('btn').style.display = 'none';
+            document.getElementById('desc').style.display = 'none';
             document.getElementById('status').style.display = 'block';
             setInterval(controllaChiamata, 4000);
-        } catch(e) { alert("Errore di connessione."); }
+        } catch(e) { alert("Errore di connessione al server."); }
     }
 
     async function controllaChiamata() {
@@ -70,14 +78,14 @@
             const res = await fetch(`${WORK_URL}/status`);
             const data = await res.json();
 
-            // Reset forzato se il medico azzera la giornata
+            // GESTIONE AZZERAMENTO MEDICO
             if (sessioneIniziale && data.sessionID != sessioneIniziale) {
-                alert("Sessione terminata. Riscansiona il codice.");
-                location.reload();
+                alert("⚠️ Il medico ha resettato la coda.\nLa tua prenotazione è stata annullata.");
+                location.reload(); // Ricarica la pagina facendolo ripartire da zero
                 return;
             }
 
-            // Se infoInVisita è vero, il medico ha chiamato l'informatore
+            // GESTIONE CHIAMATA (infoInVisita)
             if (data.infoInVisita) {
                 const box = document.getElementById('status');
                 const avviso = document.getElementById('avviso-chiamata');
@@ -87,8 +95,8 @@
                     box.classList.add('chiamata-attiva');
                     avviso.style.display = 'block';
                     text.style.display = 'none';
-                    suonaInformatore(); // Suona solo sul telefono dell'informatore
-                    segnalato = false;
+                    suonaInformatore(); // Fa suonare il telefono dell'informatore
+                    segnalato = false; // Interrompe il loop del suono
                 }
             }
         } catch(e) {}
