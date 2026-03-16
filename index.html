@@ -39,6 +39,7 @@
         @keyframes pulseTurno { 0% { transform: scale(1.05); } 50% { transform: scale(1.1); } 100% { transform: scale(1.05); } }
         
         button { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 20px 30px; border-radius: 50px; font-size: 18px; font-weight: 600; cursor: pointer; width: 100%; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3); }
+        button:disabled { background: #94a3b8; cursor: not-allowed; box-shadow: none; }
         .avviso-schermo { font-size: 11px; color: #64748b; margin-top: 20px; font-weight: 600; }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(5px); align-items: center; justify-content: center; z-index: 1000; }
         .modal-box { background: white; padding: 30px; border-radius: 24px; text-align: center; width: 85%; max-width: 320px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
@@ -59,7 +60,8 @@
         <div class="numero-attuale" id="current-display">--</div>
         
         <div id="registration-section">
-            <button onclick="prendiNumero()">PRENDI NUMERO</button>
+            <button id="btn-prendi" onclick="prendiNumero()">PRENDI NUMERO</button>
+            <p id="qr-only-msg" style="display:none; font-size: 12px; color: var(--danger); font-weight: bold; margin-top: 10px;">⚠️ Scansiona il QR Code in studio per partecipare.</p>
         </div>
 
         <div id="status-section" style="display:none;">
@@ -85,10 +87,8 @@
         let numeroPrecedente = -1;
         let wakeLock = null;
 
-        setTimeout(() => {
-            const tip = document.getElementById('install-tip');
-            if (tip) tip.style.display = 'none';
-        }, 10000);
+        const urlParams = new URLSearchParams(window.location.search);
+        const isFromQR = urlParams.has('qr');
 
         async function mantieniSchermoSveglio() {
             try { if ('wakeLock' in navigator) { wakeLock = await navigator.wakeLock.request('screen'); } } catch (err) {}
@@ -101,7 +101,8 @@
 
         function chiudiModalReset() {
             document.getElementById('custom-modal').style.display = 'none';
-            location.reload(); 
+            // Pulisce l'URL dai parametri dopo il reset per obbligare a riscansionare
+            window.location.href = window.location.pathname;
         }
 
         function suona() {
@@ -120,32 +121,33 @@
                 const res = await fetch(`${WORKER_URL}/status`); 
                 const data = await res.json();
                 
-                // 1. GESTIONE AZZERAMENTO FILA
-                const saved = localStorage.getItem('paziente_ticket');
-                if (saved) {
-                    const mio = parseInt(saved);
-                    // Se entrambi sono zero, il medico ha cliccato reset
-                    if (data.ultimoAssegnato === 0 && data.attuale === 0) {
-                        localStorage.removeItem('paziente_ticket');
-                        mostraModalReset("La fila è stata azzerata per il nuovo turno.");
-                        return;
-                    }
+                const savedSession = localStorage.getItem('session_id');
+                const savedTicket = localStorage.getItem('paziente_ticket');
+
+                // BLOCCA CHI NON HA SCANSIONATO
+                if (!savedTicket && !isFromQR) {
+                    document.getElementById('btn-prendi').disabled = true;
+                    document.getElementById('qr-only-msg').style.display = 'block';
                 }
 
-                // 2. AGGIORNAMENTO NUMERO ATTUALE
-                document.getElementById('current-display').innerText = data.attuale || 0;
+                // GESTIONE AZZERAMENTO (SessionID cambiato)
+                if (savedSession && savedSession != data.sessionID) {
+                    localStorage.clear();
+                    mostraModalReset("La sessione è scaduta o la fila è stata azzerata. Scansiona nuovamente il QR Code in studio per partecipare.");
+                    return;
+                }
 
+                document.getElementById('current-display').innerText = data.attuale || 0;
                 const wait = document.getElementById('wait-message');
                 const box = document.getElementById('info-box-container');
 
-                // 3. LOGICA INFORMATORE IN VISITA
                 if (data.infoInVisita) {
                     wait.innerHTML = "<b style='color:var(--amber)'>💼 INFORMATORE IN VISITA</b><br>La fila riprenderà tra poco.";
                     box.style.opacity = "0.5";
                 } else {
                     box.style.opacity = "1";
-                    if (saved) {
-                        const mio = parseInt(saved);
+                    if (savedTicket) {
+                        const mio = parseInt(savedTicket);
                         if (data.attuale === mio) {
                             if (numeroPrecedente !== data.attuale) { suona(); document.title = "🔔 TOCCA A TE!"; }
                             box.classList.add('turno-attivo');
@@ -158,16 +160,20 @@
                         }
                     }
                 }
-                
                 numeroPrecedente = data.attuale;
             } catch (e) {}
         }
 
         async function prendiNumero() {
+            if (!isFromQR) {
+                alert("Devi scansionare il QR Code fisico presente in studio.");
+                return;
+            }
             try {
                 const res = await fetch(`${WORKER_URL}/join`, { method: 'POST' }); 
                 const data = await res.json();
                 localStorage.setItem('paziente_ticket', data.tuoTurno);
+                localStorage.setItem('session_id', data.sessionID);
                 document.getElementById('my-number-display').innerText = data.tuoTurno;
                 document.getElementById('registration-section').style.display = 'none';
                 document.getElementById('status-section').style.display = 'block';
@@ -177,9 +183,9 @@
         }
 
         window.onload = () => {
-            const saved = localStorage.getItem('paziente_ticket');
-            if (saved) {
-                document.getElementById('my-number-display').innerText = saved;
+            const savedTicket = localStorage.getItem('paziente_ticket');
+            if (savedTicket) {
+                document.getElementById('my-number-display').innerText = savedTicket;
                 document.getElementById('registration-section').style.display = 'none';
                 document.getElementById('status-section').style.display = 'block';
             }
