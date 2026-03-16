@@ -117,53 +117,45 @@
         }
 
         async function aggiorna() {
-            try {
-                const res = await fetch(`${WORKER_URL}/status`); 
-                const data = await res.json();
-                
-                const savedSession = localStorage.getItem('session_id');
-                const savedTicket = localStorage.getItem('paziente_ticket');
+    try {
+        const res = await fetch(`${WORKER_URL}/status`); 
+        const data = await res.json();
+        const savedSession = localStorage.getItem('session_id');
+        const savedTicket = localStorage.getItem('paziente_ticket');
 
-                // BLOCCA CHI NON HA SCANSIONATO
-                if (!savedTicket && !isFromQR) {
-                    document.getElementById('btn-prendi').disabled = true;
-                    document.getElementById('qr-only-msg').style.display = 'block';
-                }
-
-                // GESTIONE AZZERAMENTO (SessionID cambiato)
-                if (savedSession && savedSession != data.sessionID) {
-                    localStorage.clear();
-                    mostraModalReset("La sessione è scaduta o la fila è stata azzerata. Scansiona nuovamente il QR Code in studio per partecipare.");
-                    return;
-                }
-
-                document.getElementById('current-display').innerText = data.attuale || 0;
-                const wait = document.getElementById('wait-message');
-                const box = document.getElementById('info-box-container');
-
-                if (data.infoInVisita) {
-                    wait.innerHTML = "<b style='color:var(--amber)'>💼 INFORMATORE IN VISITA</b><br>La fila riprenderà tra poco.";
-                    box.style.opacity = "0.5";
-                } else {
-                    box.style.opacity = "1";
-                    if (savedTicket) {
-                        const mio = parseInt(savedTicket);
-                        if (data.attuale === mio) {
-                            if (numeroPrecedente !== data.attuale) { suona(); document.title = "🔔 TOCCA A TE!"; }
-                            box.classList.add('turno-attivo');
-                            wait.style.display = "none";
-                        } else {
-                            box.classList.remove('turno-attivo');
-                            wait.style.display = "block";
-                            if (data.attuale > mio) wait.innerText = "Il tuo turno è passato.";
-                            else wait.innerText = "Ti avviseremo quando entrare.";
-                        }
-                    }
-                }
-                numeroPrecedente = data.attuale;
-            } catch (e) {}
+        // Reset automatico se la sessione cambia
+        if (savedSession && savedSession != data.sessionID) {
+            localStorage.clear();
+            mostraModalReset("La fila è terminata. Scansiona nuovamente il QR Code in studio.");
+            return;
         }
 
+        document.getElementById('current-display').innerText = data.attuale || 0;
+        const wait = document.getElementById('wait-message');
+        const box = document.getElementById('info-box-container');
+
+        if (data.infoInVisita) {
+            wait.innerHTML = "<b style='color:var(--amber)'>💼 INFORMATORE IN VISITA</b><br>La fila riprenderà tra poco.";
+            box.style.opacity = "0.5";
+        } else {
+            box.style.opacity = "1";
+            if (savedTicket) {
+                const mio = parseInt(savedTicket);
+                if (data.attuale === mio) {
+                    if (numeroPrecedente !== data.attuale) { suona(); } // Suona solo per il paziente
+                    box.classList.add('turno-attivo');
+                    wait.style.display = "none";
+                } else {
+                    box.classList.remove('turno-attivo');
+                    wait.style.display = "block";
+                    wait.innerText = (data.attuale > mio) ? "Il tuo turno è passato." : "Ti avviseremo quando entrare.";
+                }
+            }
+        }
+        numeroPrecedente = data.attuale;
+    } catch (e) {}
+}
+        
         async function prendiNumero() {
             if (!isFromQR) {
                 alert("Devi scansionare il QR Code fisico presente in studio.");
