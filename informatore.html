@@ -111,7 +111,7 @@
             (decodedText) => {
                 // SE LEGGE CON SUCCESSO
                 html5QrCode.stop().then(() => {
-                    if (decodedText.includes("informatore")) {
+                    if (decodedText.includes("informatore.html?qr=1")) {
                         window.location.href = window.location.pathname + "?qr=1";
                     } else {
                         alert("❌ QR errato. Hai inquadrato il cartello dei PAZIENTI. Inquadra quello della segreteria.");
