@@ -111,10 +111,10 @@
             (decodedText) => {
                 // SE LEGGE CON SUCCESSO
                 html5QrCode.stop().then(() => {
-                    if (decodedText.includes("informatore.html")) {
-                        window.location.href = decodedText; // Ricarica sbloccato
+                    if (decodedText.includes("informatore")) {
+                        window.location.href = window.location.pathname + "?qr=1";
                     } else {
-                        alert("❌ QR Code errato. Assicurati di inquadrare il cartello INFORMATORI.");
+                        alert("❌ QR errato. Hai inquadrato il cartello dei PAZIENTI. Inquadra quello della segreteria.");
                         chiudiScanner();
                     }
                 });
