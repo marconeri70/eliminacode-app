@@ -61,7 +61,7 @@
         
         <div id="registration-section">
             <button id="btn-prendi" onclick="prendiNumero()">PRENDI NUMERO</button>
-            <p id="qr-only-msg" style="display:none; font-size: 12px; color: var(--danger); font-weight: bold; margin-top: 10px;">⚠️ Scansiona il QR Code in studio per partecipare.</p>
+            <p id="qr-only-msg" style="display:none; font-size: 12px; color: var(--danger); font-weight: bold; margin-top: 10px;">⚠️ FOTOCAMERA RICHIESTA: Scansiona il QR Code in studio per partecipare.</p>
         </div>
 
         <div id="status-section" style="display:none;">
@@ -78,7 +78,7 @@
     <div id="custom-modal" class="modal-overlay">
         <div class="modal-box">
             <p id="modal-text"></p>
-            <button onclick="chiudiModalReset()" style="padding: 12px 25px; border-radius: 12px; border: none; background: var(--accent); color: white; font-weight: bold; cursor: pointer;">Ho capito</button>
+            <button onclick="chiudiModalReset()" style="padding: 12px 25px; border-radius: 12px; border: none; background: var(--accent); color: white; font-weight: bold; cursor: pointer; margin-top: 15px;">Ho capito</button>
         </div>
     </div>
 
@@ -86,9 +86,17 @@
         const WORKER_URL = "https://motore-coda.vocidicassino.workers.dev"; 
         let numeroPrecedente = -1;
         let wakeLock = null;
+        let audioContext = null;
 
         const urlParams = new URLSearchParams(window.location.search);
         const isFromQR = urlParams.has('qr');
+
+        // Sblocca l'audio sui telefoni moderni
+        function attivaAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
 
         async function mantieniSchermoSveglio() {
             try { if ('wakeLock' in navigator) { wakeLock = await navigator.wakeLock.request('screen'); } } catch (err) {}
@@ -101,64 +109,78 @@
 
         function chiudiModalReset() {
             document.getElementById('custom-modal').style.display = 'none';
-            // Pulisce l'URL dai parametri dopo il reset per obbligare a riscansionare
+            // Ricarica la pagina senza i parametri QR, costringendo il paziente a usare la fotocamera
             window.location.href = window.location.pathname;
         }
 
         function suona() {
             try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator(); const gain = ctx.createGain();
-                osc.connect(gain); gain.connect(ctx.destination);
-                osc.frequency.setValueAtTime(880, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1);
-                osc.start(); osc.stop(ctx.currentTime + 1);
+                if (!audioContext) return;
+                const osc = audioContext.createOscillator(); 
+                const gain = audioContext.createGain();
+                osc.connect(gain); gain.connect(audioContext.destination);
+                osc.frequency.setValueAtTime(880, audioContext.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1);
+                osc.start(); osc.stop(audioContext.currentTime + 1);
             } catch(e) {}
         }
 
         async function aggiorna() {
-    try {
-        const res = await fetch(`${WORKER_URL}/status`); 
-        const data = await res.json();
-        const savedSession = localStorage.getItem('session_id');
-        const savedTicket = localStorage.getItem('paziente_ticket');
+            try {
+                const res = await fetch(`${WORKER_URL}/status`); 
+                const data = await res.json();
+                
+                const savedSession = localStorage.getItem('session_id');
+                const savedTicket = localStorage.getItem('paziente_ticket');
 
-        // Reset automatico se la sessione cambia
-        if (savedSession && savedSession != data.sessionID) {
-            localStorage.clear();
-            mostraModalReset("La fila è terminata. Scansiona nuovamente il QR Code in studio.");
-            return;
-        }
-
-        document.getElementById('current-display').innerText = data.attuale || 0;
-        const wait = document.getElementById('wait-message');
-        const box = document.getElementById('info-box-container');
-
-        if (data.infoInVisita) {
-            wait.innerHTML = "<b style='color:var(--amber)'>💼 INFORMATORE IN VISITA</b><br>La fila riprenderà tra poco.";
-            box.style.opacity = "0.5";
-        } else {
-            box.style.opacity = "1";
-            if (savedTicket) {
-                const mio = parseInt(savedTicket);
-                if (data.attuale === mio) {
-                    if (numeroPrecedente !== data.attuale) { suona(); } // Suona solo per il paziente
-                    box.classList.add('turno-attivo');
-                    wait.style.display = "none";
-                } else {
-                    box.classList.remove('turno-attivo');
-                    wait.style.display = "block";
-                    wait.innerText = (data.attuale > mio) ? "Il tuo turno è passato." : "Ti avviseremo quando entrare.";
+                // BLOCCA CHI NON HA SCANSIONATO
+                if (!savedTicket && !isFromQR) {
+                    document.getElementById('btn-prendi').disabled = true;
+                    document.getElementById('qr-only-msg').style.display = 'block';
                 }
-            }
+
+                // GESTIONE AZZERAMENTO (SessionID cambiato)
+                if (savedSession && savedSession != data.sessionID) {
+                    localStorage.clear();
+                    mostraModalReset("La sessione è scaduta o la fila è stata azzerata. Chiudi e scansiona nuovamente il QR Code in studio per partecipare.");
+                    return;
+                }
+
+                document.getElementById('current-display').innerText = data.attuale || 0;
+                const wait = document.getElementById('wait-message');
+                const box = document.getElementById('info-box-container');
+
+                if (data.infoInVisita) {
+                    wait.innerHTML = "<b style='color:var(--amber)'>💼 INFORMATORE IN VISITA</b><br>La fila riprenderà tra poco.";
+                    box.style.opacity = "0.5";
+                } else {
+                    box.style.opacity = "1";
+                    if (savedTicket) {
+                        const mio = parseInt(savedTicket);
+                        if (data.attuale === mio) {
+                            if (numeroPrecedente !== data.attuale) { 
+                                suona(); 
+                                document.title = "🔔 TOCCA A TE!"; 
+                            }
+                            box.classList.add('turno-attivo');
+                            wait.style.display = "none";
+                        } else {
+                            box.classList.remove('turno-attivo');
+                            wait.style.display = "block";
+                            if (data.attuale > mio) wait.innerText = "Il tuo turno è passato.";
+                            else wait.innerText = "Ti avviseremo quando entrare.";
+                        }
+                    }
+                }
+                numeroPrecedente = data.attuale;
+            } catch (e) {}
         }
-        numeroPrecedente = data.attuale;
-    } catch (e) {}
-}
-        
+
         async function prendiNumero() {
+            attivaAudio(); // Sblocca l'audio al primo click dell'utente
+            
             if (!isFromQR) {
-                alert("Devi scansionare il QR Code fisico presente in studio.");
+                alert("Devi scansionare il QR Code fisico presente in studio per attivare l'app.");
                 return;
             }
             try {
@@ -170,17 +192,28 @@
                 document.getElementById('registration-section').style.display = 'none';
                 document.getElementById('status-section').style.display = 'block';
                 mantieniSchermoSveglio(); 
-                suona();
+                suona(); // Suona subito per confermare la presa del numero
             } catch(e) { mostraModalReset("Errore di connessione."); }
         }
 
         window.onload = () => {
             const savedTicket = localStorage.getItem('paziente_ticket');
-            if (savedTicket) {
+            
+            // Se l'utente arriva senza QR e senza un biglietto salvato, mostra subito l'avviso
+            if (!isFromQR && !savedTicket) {
+                document.getElementById('registration-section').innerHTML = "<p style='color:var(--danger); font-weight:bold; font-size:16px;'>⚠️ FOTOCAMERA RICHIESTA</p><p style='font-size:14px; font-weight:600;'>Apri la fotocamera del tuo telefono e inquadra il QR Code presente in studio per prendere il numero.</p>";
+            } else if (savedTicket) {
+                // Ricarica la sessione attiva
                 document.getElementById('my-number-display').innerText = savedTicket;
                 document.getElementById('registration-section').style.display = 'none';
                 document.getElementById('status-section').style.display = 'block';
             }
+            
+            setTimeout(() => {
+                const tip = document.getElementById('install-tip');
+                if (tip) tip.style.display = 'none';
+            }, 10000);
+
             aggiorna(); 
             setInterval(aggiorna, 5000);
         };
