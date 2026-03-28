@@ -9,11 +9,10 @@
         :root { --bg: #fffcf0; --primary: #451a03; --accent: #f59e0b; }
         body { font-family: 'Poppins', sans-serif; background: var(--bg); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; }
         .card { background: white; padding: 40px; border-radius: 35px; box-shadow: 0 20px 40px rgba(69, 26, 3, 0.05); width: 100%; max-width: 400px; text-align: center; border: 1px solid #fef3c7; }
-        .btn-segnala { background: var(--primary); color: white; border: none; padding: 22px; border-radius: 20px; font-size: 18px; font-weight: 700; width: 100%; cursor: pointer; box-shadow: 0 10px 20px rgba(69, 26, 3, 0.2); }
+        .btn-segnala { background: var(--primary); color: white; border: none; padding: 22px; border-radius: 20px; font-size: 18px; font-weight: 700; width: 100%; cursor: pointer; }
         .status-box { display: none; padding: 35px; border-radius: 25px; background: #fffbeb; border: 2px dashed #fde68a; margin-top: 20px; }
         .chiamata-attiva { 
             background: linear-gradient(135deg, #f59e0b, #d97706) !important; 
-            border: none !important; 
             animation: pulse 1.5s infinite; 
             color: white !important;
         }
@@ -24,11 +23,11 @@
 <body>
     <div class="card">
         <h1 style="font-size: 20px; color: var(--primary);">Area Informatori</h1>
-        <p id="desc" style="color: #92400e; font-weight: 500;">Segnala la tua presenza per entrare in coda automatica.</p>
+        <p id="desc" style="color: #92400e; font-weight: 500;">Segnala la tua presenza in segreteria.</p>
         <button id="btn" class="btn-segnala" onclick="segnala()">SEGNALA PRESENZA</button>
 
         <div id="status" class="status-box">
-            <p id="status-text" style="font-weight: 600;">Presenza registrata.<br><small>Attendi l'avviso sonoro.</small></p>
+            <p id="status-text" style="font-weight: 600;">Presenza registrata.<br><small>Attendi la chiamata.</small></p>
             <div id="avviso-chiamata" style="display:none;" class="avviso-testo">💼<br>TOCCA A TE!<br>ENTRA ORA</div>
         </div>
     </div>
@@ -52,7 +51,7 @@
         }
 
         async function segnala() {
-            if (!isFromQR) { alert("Usa il QR fisico in studio."); return; }
+            if (!isFromQR) { alert("Usa il QR fisico."); return; }
             try {
                 const res = await fetch(`${WORK_URL}/join-info`, { method: 'POST' });
                 const data = await res.json();
@@ -65,16 +64,21 @@
         }
 
         async function check() {
-            const res = await fetch(`${WORK_URL}/status`);
-            const data = await res.json();
-            if (localStorage.getItem('info_session') != data.sessionID) location.href = window.location.pathname;
-            if (data.infoInVisita && !chiamato) {
-                document.getElementById('status').classList.add('chiamata-attiva');
-                document.getElementById('status-text').style.display = 'none';
-                document.getElementById('avviso-chiamata').style.display = 'block';
-                suona(); chiamato = true;
-            }
-            if (chiamato && !data.infoInVisita) location.href = window.location.pathname;
+            try {
+                const res = await fetch(`${WORK_URL}/status`);
+                const data = await res.json();
+                if (localStorage.getItem('info_session') != data.sessionID) location.href = window.location.pathname;
+                if (data.infoInVisita && !chiamato) {
+                    document.getElementById('status').classList.add('chiamata-attiva');
+                    document.getElementById('status-text').style.display = 'none';
+                    document.getElementById('avviso-chiamata').style.display = 'block';
+                    suona(); chiamato = true;
+                }
+                if (chiamato && !data.infoInVisita) {
+                    localStorage.removeItem('info_session');
+                    location.href = window.location.pathname;
+                }
+            } catch(e) {}
         }
     </script>
 </body>
