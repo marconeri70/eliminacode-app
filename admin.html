@@ -29,59 +29,49 @@
             box-shadow: 0 40px 80px rgba(0,0,0,0.6);
         }
         .numero-attuale { 
-            font-size: 120px; 
+            font-size: 110px; 
             font-weight: 800; 
             color: var(--green); 
-            text-shadow: 0 0 40px rgba(16, 185, 129, 0.3);
             margin: 20px 0;
+            line-height: 1;
         }
-        .numero-info { color: var(--amber); text-shadow: 0 0 40px rgba(245, 158, 11, 0.3); font-size: 80px; }
+        .numero-info { color: var(--amber); font-size: 70px; }
+        #suggest-info { 
+            display:none; 
+            background:rgba(245,158,11,0.1); 
+            color:var(--amber); 
+            padding:12px; 
+            border-radius:15px; 
+            font-size:13px; 
+            margin-bottom:20px; 
+            font-weight:600; 
+            border:1px solid var(--amber);
+            animation: fadeIn 0.5s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         button { 
-            font-family: 'Poppins', sans-serif; 
-            border: none; 
-            padding: 22px; 
-            border-radius: 24px; 
-            font-size: 18px; 
-            font-weight: 800; 
-            width: 100%; 
-            cursor: pointer; 
-            margin-bottom: 15px;
-            transition: 0.2s;
+            border: none; padding: 22px; border-radius: 20px; font-size: 18px; font-weight: 800; width: 100%; cursor: pointer; margin-bottom: 15px;
         }
-        .btn-chiama { 
-            background: linear-gradient(to bottom, #10b981, #059669); 
-            color: white; 
-            border-bottom: 5px solid #047857;
-        }
-        .btn-chiama:active { border-bottom: 0; transform: translateY(5px); }
-        .btn-login { background: #3b82f6; color: white; }
-        input { 
-            background: #1e293b; 
-            border: 2px solid #334155; 
-            color: white; 
-            font-size: 30px; 
-            text-align: center; 
-            padding: 15px; 
-            border-radius: 20px; 
-            width: 80%; 
-            margin-bottom: 20px;
-        }
+        .btn-chiama { background: linear-gradient(to bottom, #10b981, #059669); color: white; border-bottom: 5px solid #047857; }
+        .btn-chiama:active { border-bottom: 0; transform: translateY(4px); }
+        input { background: #1e293b; border: 2px solid #334155; color: white; font-size: 30px; text-align: center; padding: 15px; border-radius: 20px; width: 80%; margin-bottom: 20px; }
     </style>
 </head>
 <body>
     <div class="panel" id="login-screen">
-        <h2 style="margin:0">Sblocco Console</h2>
+        <h2 style="margin:0">Console Sblocco</h2>
         <p style="color:#94a3b8; margin-bottom:25px;">Dott. Giuseppe Martino</p>
         <input type="password" id="pin-input" placeholder="••••" inputmode="numeric">
-        <button class="btn-login" onclick="login()">ACCEDI</button>
+        <button style="background:#3b82f6; color:white;" onclick="login()">ACCEDI</button>
     </div>
 
     <div class="panel" id="app-content" style="display:none;">
-        <h2 style="margin:0; font-size:16px; color:#94a3b8;">IN VISITA ORA</h2>
+        <div id="suggest-info">⭐ Toccherebbe all'informatore.</div>
+        <h2 style="margin:0; font-size:14px; color:#94a3b8; text-transform:uppercase;">In visita ora</h2>
         <div class="numero-attuale" id="curr">--</div>
-        <p id="stats" style="font-weight:600; color:#cbd5e1; margin-bottom:30px;">⏳ Caricamento...</p>
+        <p id="stats" style="font-weight:600; color:#cbd5e1; margin-bottom:30px;">Caricamento...</p>
         <button class="btn-chiama" onclick="next()">🔊 CHIAMA PROSSIMO</button>
-        <button style="background:transparent; color:var(--amber); border:2px solid var(--amber); font-size:14px;" onclick="reset()">🔄 AZZERA GIORNATA</button>
+        <button style="background:transparent; color:#64748b; border:1px solid #334155; font-size:13px;" onclick="reset()">🔄 AZZERA SESSIONE</button>
     </div>
 
     <script>
@@ -100,16 +90,27 @@
         }
 
         async function load() {
-            const res = await fetch(`${WORKER_URL}/status`);
-            const d = await res.json();
-            const curr = document.getElementById('curr');
-            if (d.infoInVisita) { curr.innerText = "💼 INFO"; curr.className = "numero-attuale numero-info"; }
-            else { curr.innerText = d.ticketAttuale; curr.className = "numero-attuale"; }
-            document.getElementById('stats').innerText = `Pazienti in attesa: ${d.ultimoTicket - d.ticketAttuale} | Informatori: ${d.informatoriInCoda}`;
+            try {
+                const res = await fetch(`${WORKER_URL}/status`);
+                const d = await res.json();
+                const curr = document.getElementById('curr');
+                const suggest = document.getElementById('suggest-info');
+                
+                if (d.infoInVisita) { 
+                    curr.innerText = "💼 INFO"; 
+                    curr.className = "numero-attuale numero-info"; 
+                    suggest.style.display = 'none';
+                } else { 
+                    curr.innerText = d.ticketAttuale; 
+                    curr.className = "numero-attuale"; 
+                    suggest.style.display = (d.informatoriInCoda > 0 && d.pazientiVistiDaUltimoInfo >= 2) ? 'block' : 'none';
+                }
+                document.getElementById('stats').innerText = `Attesa: ${d.ultimoTicket - d.ticketAttuale} paz. | ${d.informatoriInCoda} info.`;
+            } catch(e) {}
         }
 
         async function next() { await fetch(`${WORKER_URL}/next`, {method:'POST'}); load(); }
-        async function reset() { if(confirm("Azzero tutto?")) { await fetch(`${WORKER_URL}/reset`, {method:'POST'}); load(); } }
+        async function reset() { if(confirm("Resetto tutto?")) { await fetch(`${WORKER_URL}/reset`, {method:'POST'}); load(); } }
     </script>
 </body>
 </html>
