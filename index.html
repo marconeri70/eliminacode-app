@@ -13,6 +13,7 @@
             --accent: #0ea5e9; 
             --success: #10b981; 
             --danger: #f43f5e; 
+            --amber: #f59e0b;
             --glass: rgba(255, 255, 255, 0.85);
         }
         body { 
@@ -56,7 +57,7 @@
             border-radius: 28px; 
             margin: 25px 0; 
             border: 1px solid #f1f5f9;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: all 0.4s ease;
         }
         .tuo-numero { font-size: 60px; font-weight: 800; color: var(--accent); }
         .turno-attivo { 
@@ -76,7 +77,6 @@
             font-weight: 700; 
             cursor: pointer; 
             width: 100%; 
-            box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.2);
         }
         #reader-container { display: none; margin-top: 15px; }
         #reader { width: 100%; border-radius: 20px; overflow: hidden; border: 2px solid var(--accent); }
@@ -94,7 +94,7 @@
             <button id="btn-prendi" onclick="prendiNumero()">PRENDI NUMERO</button>
             <div id="reader-container">
                 <div id="reader"></div>
-                <button style="background:var(--danger); margin-top:10px;" onclick="chiudiScanner()">ANNULLA</button>
+                <button style="background:var(--danger); margin-top:10px; color:white; border:none; padding:10px; border-radius:10px;" onclick="chiudiScanner()">ANNULLA</button>
             </div>
         </div>
 
@@ -102,7 +102,7 @@
             <div class="info-box" id="info-box-container">
                 <p id="info-box-title" style="margin:0; font-size: 13px; font-weight: 600; color: #64748b;">IL TUO NUMERO</p>
                 <div class="tuo-numero" id="my-number-display">--</div>
-                <p id="msg-ora" style="display:none; margin:10px 0 0 0; font-weight: 900; font-size: 18px;">ENTRA ORA!</p>
+                <p id="msg-ora" style="display:none; margin:10px 0 0 0; font-weight: 900; font-size: 18px; color:white;">ENTRA ORA!</p>
             </div>
             <p id="wait-message" style="font-size: 15px; font-weight: 600; color: #475569;">Ti avviseremo qui.</p>
         </div>
@@ -141,16 +141,28 @@
                 document.getElementById('current-display').innerText = data.attuale || 0;
                 const box = document.getElementById('info-box-container');
                 const msg = document.getElementById('msg-ora');
+                const wait = document.getElementById('wait-message');
 
-                if (savedTicket) {
-                    const mio = parseInt(savedTicket);
-                    if (data.attuale === mio) {
-                        if (!box.classList.contains('turno-attivo')) { suona(); document.title = "🔔 ENTRA!"; }
-                        box.classList.add('turno-attivo');
-                        msg.style.display = 'block';
-                    } else {
-                        box.classList.remove('turno-attivo');
-                        msg.style.display = 'none';
+                if (data.infoInVisita) {
+                    wait.innerHTML = "<b style='color:var(--amber)'>💼 INFORMATORE IN VISITA</b><br>La fila riprenderà tra poco.";
+                    box.style.opacity = "0.5";
+                    box.classList.remove('turno-attivo');
+                    msg.style.display = 'none';
+                } else {
+                    box.style.opacity = "1";
+                    wait.innerHTML = "Ti avviseremo qui.";
+                    if (savedTicket) {
+                        const mio = parseInt(savedTicket);
+                        if (data.attuale === mio) {
+                            if (!box.classList.contains('turno-attivo')) { suona(); }
+                            box.classList.add('turno-attivo');
+                            msg.style.display = 'block';
+                            wait.style.display = 'none';
+                        } else {
+                            box.classList.remove('turno-attivo');
+                            msg.style.display = 'none';
+                            wait.style.display = 'block';
+                        }
                     }
                 }
             } catch (e) {}
@@ -179,7 +191,7 @@
                 document.getElementById('registration-section').style.display = 'none';
                 document.getElementById('status-section').style.display = 'block';
                 suona();
-            } catch(e) { alert("Errore di connessione."); }
+            } catch(e) { alert("Errore connessione."); }
         }
 
         window.onload = () => {
