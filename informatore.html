@@ -3,225 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Area Informatori - Studio Martino</title>
+    <title>Informatori - Studio Martino</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
-        :root { --primary: #0f172a; --accent: #f59e0b; --success: #10b981; --danger: #ef4444; }
-        body { font-family: 'Poppins', sans-serif; background: #f1f5f9; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; text-align: center; }
-        .card { background: white; padding: 40px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
-        .btn-segnala { background: var(--primary); color: white; border: none; padding: 20px; border-radius: 15px; font-size: 18px; font-weight: 700; cursor: pointer; width: 100%; transition: 0.3s; }
-        .btn-grigio { background: #94a3b8 !important; }
-        .status-box { display: none; padding: 30px; border-radius: 15px; background: #f8fafc; border: 2px dashed #cbd5e1; margin-top: 20px; }
-        
-        .chiamata-attiva { background: var(--accent) !important; border: none !important; animation: pulse 1.5s infinite; color: #422006; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
-        
-        h1 { font-size: 22px; margin-bottom: 10px; }
-        .avviso-testo { font-weight: 800; font-size: 26px; line-height: 1.2; }
-        
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(5px); align-items: center; justify-content: center; z-index: 1000; }
-        .modal-box { background: white; padding: 30px; border-radius: 24px; text-align: center; width: 85%; max-width: 320px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
-        
-        /* Stili Scanner Modificato */
-        #reader-container { display: none; margin-top: 15px; }
-        #reader { width: 100%; border-radius: 15px; overflow: hidden; border: 2px solid var(--primary); background: black; }
-        .btn-annulla { background: var(--danger); color: white; border: none; padding: 12px; border-radius: 12px; font-weight: bold; width: 100%; margin-top: 10px; cursor: pointer; }
+        :root { --bg: #fffcf0; --primary: #451a03; --accent: #f59e0b; }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .card { background: white; padding: 40px; border-radius: 35px; box-shadow: 0 20px 40px rgba(69, 26, 3, 0.05); width: 100%; max-width: 400px; text-align: center; border: 1px solid #fef3c7; }
+        .btn-segnala { background: var(--primary); color: white; border: none; padding: 22px; border-radius: 20px; font-size: 18px; font-weight: 700; width: 100%; cursor: pointer; box-shadow: 0 10px 20px rgba(69, 26, 3, 0.2); }
+        .status-box { display: none; padding: 35px; border-radius: 25px; background: #fffbeb; border: 2px dashed #fde68a; margin-top: 20px; }
+        .chiamata-attiva { 
+            background: linear-gradient(135deg, #f59e0b, #d97706) !important; 
+            border: none !important; 
+            animation: pulse 1.5s infinite; 
+            color: white !important;
+        }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
+        .avviso-testo { font-weight: 900; font-size: 28px; line-height: 1.2; }
     </style>
 </head>
 <body>
     <div class="card">
-        <h1>Area Informatori</h1>
-        <p id="desc">Segnala la tua presenza in segreteria per metterti in coda.</p>
-        
-        <button id="btn" class="btn-segnala" onclick="segnalaPresenza()">SEGNALA PRESENZA</button>
-        <p id="qr-only-msg" style="display:none; font-size: 13px; color: var(--danger); font-weight: bold; margin-top: 15px;">⚠️ Tocca il tasto sopra per attivare la fotocamera e leggere il codice in segreteria.</p>
-
-        <div id="reader-container">
-            <div id="reader"></div>
-            <button class="btn-annulla" onclick="chiudiScanner()">Annulla</button>
-        </div>
+        <h1 style="font-size: 20px; color: var(--primary);">Area Informatori</h1>
+        <p id="desc" style="color: #92400e; font-weight: 500;">Segnala la tua presenza per entrare in coda automatica.</p>
+        <button id="btn" class="btn-segnala" onclick="segnala()">SEGNALA PRESENZA</button>
 
         <div id="status" class="status-box">
-            <p id="status-text">Presenza inviata correttamente.<br><br><small>Riceverai un avviso sonoro quando il medico ti chiamerà.</small></p>
-            <div id="avviso-chiamata" style="display:none;" class="avviso-testo">💼<br>È IL TUO TURNO!<br>ENTRA ORA</div>
-        </div>
-    </div>
-
-    <div id="custom-modal" class="modal-overlay">
-        <div class="modal-box">
-            <p id="modal-text" style="font-weight: 600; color: #1e293b;"></p>
-            <button onclick="chiudiModalReset()" style="padding: 12px 25px; border-radius: 12px; border: none; background: var(--danger); color: white; font-weight: bold; cursor: pointer; margin-top: 15px;">Chiudi</button>
+            <p id="status-text" style="font-weight: 600;">Presenza registrata.<br><small>Attendi l'avviso sonoro.</small></p>
+            <div id="avviso-chiamata" style="display:none;" class="avviso-testo">💼<br>TOCCA A TE!<br>ENTRA ORA</div>
         </div>
     </div>
 
     <script>
-    const WORK_URL = "https://motore-coda.motore-coda-admin.workers.dev";
-    let segnalato = false;
-    let chiamataRicevuta = false; 
-    let audioCtx = null;
-    let html5QrCode = null;
+        const WORK_URL = "https://motore-coda.motore-coda-admin.workers.dev";
+        let audioCtx = null;
+        let chiamato = false;
+        const isFromQR = new URLSearchParams(window.location.search).has('qr');
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const isFromQR = urlParams.has('qr');
-
-    function sbloccaAudio() {
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function suona() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            [440, 660, 880].forEach((f, i) => {
+                const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+                o.connect(g); g.connect(audioCtx.destination);
+                o.frequency.setValueAtTime(f, audioCtx.currentTime + (i*0.1));
+                g.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                o.start(audioCtx.currentTime + (i*0.1)); o.stop(audioCtx.currentTime + 0.5);
+            });
         }
-    }
 
-    function suonaInformatore() {
-        if (!audioCtx) return;
-        [440, 660, 880].forEach((freq, i) => { 
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.frequency.setValueAtTime(freq, audioCtx.currentTime + (i * 0.15));
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime + (i * 0.15));
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + (i * 0.15) + 0.3);
-            osc.start(audioCtx.currentTime + (i * 0.15));
-            osc.stop(audioCtx.currentTime + (i * 0.15) + 0.3);
-        });
-    }
-
-    function mostraModalReset(msg) {
-        document.getElementById('modal-text').innerText = msg;
-        document.getElementById('custom-modal').style.display = 'flex';
-    }
-
-    function chiudiModalReset() {
-        document.getElementById('custom-modal').style.display = 'none';
-        window.location.href = window.location.pathname; 
-    }
-
-    // --- LOGICA SCANNER QR INFALLIBILE ---
-    function apriScanner() {
-        document.getElementById('btn').style.display = 'none';
-        document.getElementById('qr-only-msg').style.display = 'none';
-        document.getElementById('desc').style.display = 'none';
-        document.getElementById('reader-container').style.display = 'block';
-
-        html5QrCode = new Html5Qrcode("reader");
-        
-        html5QrCode.start(
-            { facingMode: "environment" }, 
-            { fps: 15 },
-            (decodedText) => {
-                html5QrCode.stop().then(() => {
-                    window.location.href = window.location.pathname + "?qr=1";
-                });
-            },
-            (errorMessage) => { }
-        ).catch((err) => {
-            alert("Errore fotocamera. Assicurati di aver dato i permessi al browser.");
-            chiudiScanner();
-        });
-    }
-
-    function chiudiScanner() {
-        if (html5QrCode) {
-            html5QrCode.stop().catch(e => {});
+        async function segnala() {
+            if (!isFromQR) { alert("Usa il QR fisico in studio."); return; }
+            try {
+                const res = await fetch(`${WORK_URL}/join-info`, { method: 'POST' });
+                const data = await res.json();
+                localStorage.setItem('info_session', data.sessionID);
+                document.getElementById('btn').style.display = 'none';
+                document.getElementById('desc').style.display = 'none';
+                document.getElementById('status').style.display = 'block';
+                setInterval(check, 3000);
+            } catch(e) { alert("Errore connessione."); }
         }
-        document.getElementById('reader-container').style.display = 'none';
-        document.getElementById('btn').style.display = 'block';
-        document.getElementById('qr-only-msg').style.display = 'block';
-        document.getElementById('desc').style.display = 'block';
-    }
-    // -------------------------
 
-    async function segnalaPresenza() {
-        sbloccaAudio();
-        
-        if (!isFromQR) {
-            alert("Devi scansionare il QR Code o usare l'NFC presente in studio per attivare l'app.");
-            return;
-        }
-        
-        try {
-            const res = await fetch(`${WORK_URL}/join-info`, { method: 'POST' });
-            const data = await res.json();
-            
-            localStorage.setItem('info_session_id', data.sessionID);
-            localStorage.setItem('info_segnalato', 'true');
-            
-            segnalato = true;
-            chiamataRicevuta = false;
-            aggiornaInterfaccia();
-        } catch(e) { alert("Errore di connessione al server."); }
-    }
-
-    function aggiornaInterfaccia() {
-        document.getElementById('btn').style.display = 'none';
-        document.getElementById('desc').style.display = 'none';
-        document.getElementById('qr-only-msg').style.display = 'none';
-        document.getElementById('status').style.display = 'block';
-    }
-
-    // MOTORE DI CONTROLLO CONTINUO E BLINDATO
-    async function controllaStato() {
-        try {
+        async function check() {
             const res = await fetch(`${WORK_URL}/status`);
             const data = await res.json();
-            const savedSession = localStorage.getItem('info_session_id');
-
-            // 1. GESTIONE RESET DEL DOTTORE (AZZERA)
-            if (savedSession && data.sessionID != savedSession) {
-                localStorage.removeItem('info_session_id');
-                localStorage.removeItem('info_segnalato');
-                segnalato = false;
-                chiamataRicevuta = false;
-                
-                mostraModalReset("⚠️ La giornata è stata azzerata dal medico.\nDevi usare nuovamente il QR Code o l'NFC per segnalare la tua presenza.");
-                return;
+            if (localStorage.getItem('info_session') != data.sessionID) location.href = window.location.pathname;
+            if (data.infoInVisita && !chiamato) {
+                document.getElementById('status').classList.add('chiamata-attiva');
+                document.getElementById('status-text').style.display = 'none';
+                document.getElementById('avviso-chiamata').style.display = 'block';
+                suona(); chiamato = true;
             }
-
-            // 2. GESTIONE CHIAMATA (TURNO)
-            if (segnalato && data.infoInVisita && !chiamataRicevuta) {
-                const box = document.getElementById('status');
-                const avviso = document.getElementById('avviso-chiamata');
-                const text = document.getElementById('status-text');
-                
-                if (avviso.style.display === 'none') {
-                    box.classList.add('chiamata-attiva');
-                    avviso.style.display = 'block';
-                    text.style.display = 'none';
-                    suonaInformatore(); 
-                    chiamataRicevuta = true; 
-                    localStorage.removeItem('info_segnalato'); 
-                }
-            }
-
-            // 3. AUTO-RESET A FINE VISITA
-            // Se l'informatore era stato chiamato, ma ora infoInVisita è false (il medico ha premuto "Chiama Prossimo")
-            if (chiamataRicevuta && !data.infoInVisita) {
-                localStorage.removeItem('info_session_id');
-                // Toglie l'autorizzazione ?qr=1 e riporta la pagina alla schermata di blocco fotocamera
-                window.location.href = window.location.pathname; 
-            }
-
-        } catch(e) {}
-    }
-
-    window.onload = () => {
-        const isSegnalato = localStorage.getItem('info_segnalato');
-        
-        if (!isFromQR && !isSegnalato) {
-            const btn = document.getElementById('btn');
-            btn.innerText = "📷 INQUADRA QR CODE";
-            btn.classList.add('btn-grigio');
-            btn.onclick = apriScanner; 
-            
-            document.getElementById('qr-only-msg').style.display = 'block';
-        } else if (isSegnalato === 'true') {
-            segnalato = true;
-            aggiornaInterfaccia();
+            if (chiamato && !data.infoInVisita) location.href = window.location.pathname;
         }
-
-        // Il motore gira sempre in background fin dall'apertura della pagina
-        controllaStato();
-        setInterval(controllaStato, 3000);
-    };
     </script>
 </body>
 </html>
