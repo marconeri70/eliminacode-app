@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generatori QR - Studio Martino</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root { --bg: #f8fafc; --primary: #0f172a; --accent: #0ea5e9; --amber: #f59e0b; }
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background: var(--bg); 
+            color: var(--primary); 
+            text-align: center; 
+            padding: 40px 20px; 
+            margin: 0;
+        }
+        h1 { font-weight: 800; margin-bottom: 10px; }
+        p.subtitle { color: #64748b; font-weight: 600; margin-bottom: 40px; }
+        
+        .container { 
+            display: flex; 
+            flex-wrap: wrap; 
+            justify-content: center; 
+            gap: 40px; 
+        }
+        .qr-card { 
+            background: white; 
+            padding: 40px; 
+            border-radius: 30px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.05); 
+            border: 1px solid #e2e8f0;
+            width: 100%;
+            max-width: 300px;
+        }
+        .qr-card h2 { margin-top: 0; font-size: 20px; }
+        .pazienti-title { color: var(--accent); }
+        .info-title { color: var(--amber); }
+        
+        .qr-code { 
+            margin: 20px auto; 
+            padding: 15px; 
+            background: white; 
+            border: 2px dashed #cbd5e1; 
+            border-radius: 15px; 
+            display: inline-block;
+        }
+        .link-text { 
+            font-size: 12px; 
+            color: #94a3b8; 
+            word-break: break-all; 
+            background: #f1f5f9; 
+            padding: 10px; 
+            border-radius: 10px; 
+        }
+
+        .btn-stampa {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 15px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 50px;
+            font-family: 'Poppins', sans-serif;
+            box-shadow: 0 10px 20px rgba(15, 23, 42, 0.2);
+            transition: 0.2s;
+        }
+        .btn-stampa:hover { transform: translateY(-3px); }
+
+        /* Nasconde i pulsanti e lo sfondo durante la stampa */
+        @media print {
+            body { background: white; padding: 0; }
+            .btn-stampa, p.subtitle { display: none; }
+            .qr-card { box-shadow: none; border: none; padding: 20px; }
+            .container { gap: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Codici QR di Accesso</h1>
+    <p class="subtitle">Scansiona o stampa questi codici per l'accesso allo studio.</p>
+
+    <div class="container">
+        <div class="qr-card">
+            <h2 class="pazienti-title">QR PAZIENTI</h2>
+            <div class="qr-code" id="qrcode-paziente"></div>
+            <div class="link-text" id="link-paziente">...</div>
+        </div>
+
+        <div class="qr-card">
+            <h2 class="info-title">QR INFORMATORI</h2>
+            <div class="qr-code" id="qrcode-info"></div>
+            <div class="link-text" id="link-info">...</div>
+        </div>
+    </div>
+
+    <button class="btn-stampa" onclick="window.print()">🖨️ Stampa Codici QR</button>
+
+    <script>
+        window.onload = function() {
+            // Calcola automaticamente l'URL base dove è ospitato il file
+            const currentUrl = window.location.href;
+            const baseUrl = currentUrl.replace('qr.html', '').split('?')[0];
+
+            // Crea i link magici
+            const linkPazienti = baseUrl + "index.html?qr=1";
+            const linkInformatori = baseUrl + "informatore.html?qr=1";
+
+            // Mostra i link nei box grigi
+            document.getElementById("link-paziente").innerText = linkPazienti;
+            document.getElementById("link-info").innerText = linkInformatori;
+
+            // Genera i QR Code
+            new QRCode(document.getElementById("qrcode-paziente"), {
+                text: linkPazienti,
+                width: 200,
+                height: 200,
+                colorDark : "#0f172a",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+
+            new QRCode(document.getElementById("qrcode-info"), {
+                text: linkInformatori,
+                width: 200,
+                height: 200,
+                colorDark : "#451a03",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        };
+    </script>
+</body>
+</html>
