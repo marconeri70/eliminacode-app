@@ -84,28 +84,6 @@
     <script>
         const WORKER_URL = "https://motore-coda.motore-coda-admin.workers.dev"; 
         let pinAttualeSalvato = ""; 
-        let wakeLock = null; // Variabile per il controllo dello schermo
-
-        // FUNZIONE: FORZA LO SCHERMO SEMPRE ACCESO
-        async function mantieniSchermoSveglio() {
-            if ('wakeLock' in navigator) {
-                try {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                    console.log('Wake Lock attivato: Schermo sempre acceso.');
-                    
-                    // Riattiva il blocco se il browser viene minimizzato e poi riaperto
-                    document.addEventListener('visibilitychange', async () => {
-                        if (wakeLock !== null && document.visibilityState === 'visible') {
-                            wakeLock = await navigator.wakeLock.request('screen');
-                        }
-                    });
-                } catch (err) {
-                    console.log(`Errore Wake Lock: ${err.message}`);
-                }
-            } else {
-                console.log("Il browser non supporta il Wake Lock API.");
-            }
-        }
 
         async function verificaPin() {
             const pinInserito = document.getElementById('pin-input').value;
@@ -116,10 +94,6 @@
                     pinAttualeSalvato = pinInserito;
                     document.getElementById('login-screen').style.display = 'none';
                     document.getElementById('app-content').style.display = 'block';
-                    
-                    // ATTIVA IL BLOCCO SCHERMO APPENA ENTRA
-                    mantieniSchermoSveglio();
-                    
                     caricaDati(); setInterval(caricaDati, 4000);
                 } else {
                     document.getElementById('errore-pin').style.display = 'block';
@@ -135,6 +109,7 @@
                 
                 const currDisplay = document.getElementById('curr');
 
+                // Se l'informatore è in visita, mostra INFO in arancione, altrimenti il numero del paziente
                 if (data.infoInVisita) {
                     currDisplay.innerHTML = "💼 INFO";
                     currDisplay.className = "numero-attuale numero-info";
@@ -143,9 +118,11 @@
                     currDisplay.className = "numero-attuale";
                 }
                 
+                // Statistiche Pazienti
                 const inAttesa = (data.ultimoTicket || 0) - (data.ticketAttuale || 0);
                 document.getElementById('info-coda').innerText = `⏳ Pazienti in attesa: ${inAttesa > 0 ? inAttesa : 0}`;
 
+                // Statistiche Informatori
                 const numInfo = data.informatoriInCoda || 0;
                 const badgeContainer = document.getElementById('info-badge-container');
                 const btnInfo = document.getElementById('btn-chiama-info');
@@ -154,6 +131,7 @@
                     badgeContainer.style.display = 'block';
                     document.getElementById('count-info').innerText = numInfo;
                     
+                    // Mostra il tasto di "Forzatura" solo se l'informatore non è già in studio
                     if (!data.infoInVisita) {
                         btnInfo.style.display = 'block';
                     } else {
@@ -168,6 +146,7 @@
 
         async function prossimo() {
             try {
+                // Il server deciderà in automatico se chiamare un paziente o un informatore!
                 const res = await fetch(`${WORKER_URL}/next`, { method: 'POST' });
                 await res.json();
                 caricaDati(); 
