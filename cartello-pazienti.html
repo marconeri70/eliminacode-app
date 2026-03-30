@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Cartello Pazienti - Sala d'Attesa</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root { 
+            --primary: #0f172a; 
+            --accent: #0ea5e9; 
+            --success: #10b981; 
+            --slate-100: #f1f5f9;
+            --slate-500: #64748b;
+            --slate-800: #1e293b;
+        }
+        
+        /* BASE E RESET */
+        body { 
+            background: #e2e8f0; 
+            display: flex; 
+            justify-content: center; 
+            padding: 20px; 
+            font-family: 'Poppins', sans-serif; 
+            margin: 0; 
+        }
+        
+        /* FOGLIO A4 RIGOROSO */
+        .a4-page { 
+            background: white; 
+            width: 210mm; 
+            height: 297mm; 
+            padding: 20mm; 
+            box-sizing: border-box; 
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.1); 
+            text-align: center; 
+            color: var(--primary); 
+            position: relative;
+            overflow: hidden; 
+            page-break-after: avoid; 
+        }
+        
+        /* INTESTAZIONE */
+        h2 { font-size: 22px; font-weight: 700; margin: 0; color: var(--slate-500); text-transform: uppercase; letter-spacing: 2px; }
+        h1 { font-size: 46px; font-weight: 900; margin: 5px 0 20px 0; color: var(--primary); line-height: 1.1; }
+        
+        /* TITOLO AZIONE */
+        .area-title { 
+            font-size: 32px; 
+            font-weight: 900; 
+            color: var(--accent); 
+            margin: 20px 0 30px 0; 
+            padding-bottom: 25px;
+            border-bottom: 2px dashed #cbd5e1;
+        }
+        
+        /* GRIGLIA OPZIONI */
+        .methods-container { display: flex; justify-content: space-between; gap: 25px; margin-bottom: 40px; }
+        
+        /* STILE COMUNE DEI BOX */
+        .box { 
+            border-radius: 24px; 
+            padding: 30px 20px; 
+            width: 48%; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: flex-start; 
+            box-sizing: border-box; 
+            border: 3px dashed #cbd5e1;
+            background: var(--slate-100);
+            position: relative; 
+        }
+        .box-title { font-size: 18px; font-weight: 800; margin-bottom: 25px; line-height: 1.4; text-transform: uppercase; color: var(--slate-800); }
+        
+        /* BOX QR (AZZURRO) */
+        .box.qr { border-color: #38bdf8; background: #f0f9ff; }
+        .box-title.qr { color: #0284c7; }
+        .qr-image-container { 
+            width: 160px; 
+            height: 160px; 
+            background: white; 
+            border: 2px solid #bae6fd; 
+            padding: 10px; 
+            border-radius: 20px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            box-shadow: 0 10px 20px rgba(2, 132, 199, 0.05);
+        }
+        /* Assicura che il QR generato si adatti perfettamente */
+        .qr-image-container img, .qr-image-container canvas { width: 100%; height: auto; border-radius: 8px; }
+        
+        /* BOX NFC (VERDE) */
+        .box.nfc { border-color: #34d399; background: #f0fdf4; }
+        .box-title.nfc { color: #059669; }
+        .nfc-target { 
+            width: 160px; 
+            height: 160px; 
+            border-radius: 50%; 
+            background: linear-gradient(135deg, #10b981, #059669); 
+            color: white; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            text-align: center;
+            font-weight: 900; 
+            font-size: 22px; 
+            line-height: 1.2;
+            box-shadow: 0 15px 30px rgba(16, 185, 129, 0.25); 
+            border: 8px solid #d1fae5; 
+            position: relative; 
+        }
+        .nfc-target::after { 
+            content: ''; 
+            position: absolute; 
+            width: 120px; 
+            height: 120px; 
+            border-radius: 50%; 
+            border: 3px dashed rgba(255,255,255,0.4); 
+        }
+        
+        /* ISTRUZIONI IN BASSO */
+        .istruzioni { 
+            text-align: left; 
+            font-size: 18px; 
+            line-height: 1.6; 
+            font-weight: 600; 
+            background: white; 
+            padding: 30px 40px; 
+            border-radius: 24px; 
+            border: 2px solid #e2e8f0; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+        }
+        .istruzioni-title { font-size: 22px; font-weight: 900; color: var(--primary); margin-bottom: 20px; display: block; text-transform: uppercase; }
+        .istruzioni ol { margin: 0; padding-left: 25px; color: var(--slate-800); }
+        .istruzioni li { margin-bottom: 15px; }
+        .istruzioni li span.green { color: var(--success); font-weight: 900; text-transform: uppercase; }
+        .istruzioni-footer { font-size: 14px; color: var(--slate-500); margin-top: 25px; text-align: center; font-weight: 500; font-style: italic; }
+        
+        /* BOTTONE FLUTTUANTE STAMPA */
+        .btn-stampa { 
+            position: fixed; 
+            bottom: 30px; 
+            right: 30px; 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            padding: 18px 35px; 
+            border-radius: 50px; 
+            font-size: 18px; 
+            font-weight: 800; 
+            cursor: pointer; 
+            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.3); 
+            z-index: 100; 
+            font-family: 'Poppins', sans-serif;
+            transition: transform 0.2s;
+        }
+        .btn-stampa:hover { transform: translateY(-3px); }
+        
+        /* SETTAGGI PER LA STAMPA PERFETTA */
+        @page { size: A4; margin: 0; }
+        @media print {
+            body { background: white; padding: 0; margin: 0; }
+            .a4-page { box-shadow: none; width: 210mm; height: 297mm; padding: 20mm; margin: 0; border: none; }
+            .btn-stampa { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <button class="btn-stampa" onclick="window.print()">🖨️ Stampa Cartello</button>
+
+    <div class="a4-page">
+        <h2>Studio Medico</h2>
+        <h1>Dott. Giuseppe Martino</h1>
+
+        <div class="area-title">🎫 PRENDI IL TUO NUMERO</div>
+
+        <div class="methods-container">
+            <div class="box qr">
+                <div class="box-title qr">📷 OPZIONE 1<br>Inquadra il Codice</div>
+                <div class="qr-image-container" id="qrcode-paziente"></div>
+            </div>
+
+            <div class="box nfc">
+                <div class="box-title nfc">📱 OPZIONE 2<br>Appoggia il Telefono</div>
+                <div class="nfc-target">
+                    APPOGGIA<br>QUI
+                </div>
+            </div>
+        </div>
+
+        <div class="istruzioni">
+            <span class="istruzioni-title">Come funziona la fila:</span>
+            <ol>
+                <li>Usa uno dei due metodi qui sopra.</li>
+                <li>Si aprirà l'app dello studio: premi il grande tasto <b>"PRENDI NUMERO"</b>.</li>
+                <li>Mettiti comodo: <b>il tuo telefono suonerà</b> e lo schermo diventerà <span class="green">VERDE</span> nel momento esatto in cui sarà il tuo turno per entrare.</li>
+            </ol>
+            <p class="istruzioni-footer">(Mantieni la pagina aperta sul telefono o non spegnere lo schermo mentre aspetti)</p>
+        </div>
+    </div>
+
+    <script>
+        window.onload = function() {
+            // Calcola automaticamente l'URL base
+            const currentUrl = window.location.href;
+            const baseUrl = currentUrl.replace('cartello-pazienti.html', '').split('?')[0];
+            const linkPazienti = baseUrl + "index.html?qr=1";
+
+            // Genera il QR Code dentro il div "qrcode-paziente"
+            new QRCode(document.getElementById("qrcode-paziente"), {
+                text: linkPazienti,
+                width: 140, // Dimensione ottimale per riempire il box bianco
+                height: 140,
+                colorDark : "#0f172a",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        };
+    </script>
+</body>
+</html>
