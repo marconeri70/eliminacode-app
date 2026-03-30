@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Cartello Segreteria - QR e NFC Informatori</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        /* BASE - Dimensioni forzate A4, singola pagina, niente overflow */
+        body { background: #e2e8f0; display: flex; justify-content: center; padding: 0; font-family: 'Poppins', sans-serif; margin: 0; }
+        .a4-page { background: white; width: 21cm; height: 29.7cm; padding: 1.5cm 2cm; box-sizing: border-box; box-shadow: 0 0 20px rgba(0,0,0,0.1); text-align: center; color: #1e293b; overflow: hidden; page-break-after: avoid; }
+        
+        /* HEADER */
+        h1 { font-size: 32px; font-weight: 900; margin-bottom: 5px; margin-top: 0; color: #0f172a; text-transform: uppercase; }
+        h2 { font-size: 20px; font-weight: 700; margin-top: 0; color: #475569; border-bottom: 3px solid #cbd5e1; padding-bottom: 15px; }
+        
+        /* TITOLO AREA */
+        .area-title { font-size: 36px; font-weight: 900; color: #f59e0b; margin-top: 15px; margin-bottom: 30px; line-height: 1.1; }
+        .area-subtitle { font-size: 18px; font-weight: 600; color: #64748b; margin-bottom: 20px; }
+        
+        /* CONTAINER METODI (FLEXBOX PULITO) */
+        .methods-container { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 40px; }
+        
+        /* STILI COMUNI RIQUADRI */
+        .box { border-radius: 20px; padding: 30px; width: 48%; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; border-width: 5px; border-style: dashed; position: relative; }
+        .box-title { font-size: 20px; font-weight: 900; margin-bottom: 20px; line-height: 1.2; text-transform: uppercase; }
+        
+        /* BOX QR CODE (BLU SCURO/GRIGIO) */
+        .box.qr { border-color: #475569; background: #f8fafc; }
+        .box-title.qr { color: #334155; }
+        .qr-image-container { width: 100%; max-width: 220px; aspect-ratio: 1/1; background: white; border: 2px solid #cbd5e1; padding: 10px; border-radius: 15px; display: flex; align-items: center; justify-content: center; }
+        /* Assicura che il QR generato si adatti perfettamente (img e canvas) */
+        .qr-image-container img, .qr-image-container canvas { width: 100%; height: auto; border-radius: 10px; }
+        
+        /* BOX NFC (ARANCIONE) */
+        .box.nfc { border-color: #f59e0b; background: #fffbeb; }
+        .box-title.nfc { color: #d97706; }
+        .nfc-target { width: 160px; height: 160px; border-radius: 50%; background: #f59e0b; color: white; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 20px; line-height: 1.2; box-shadow: 0 10px 20px rgba(245, 158, 11, 0.3); border: 8px solid #fde68a; position: relative; }
+        .nfc-target::after { content: ''; position: absolute; width: 120px; height: 120px; border-radius: 50%; border: 3px dashed rgba(255,255,255,0.6); }
+        
+        /* ISTRUZIONI (PULITE E SEPARATE) */
+        .istruzioni { text-align: left; font-size: 18px; line-height: 1.6; font-weight: 600; background: #f8fafc; padding: 25px 35px; border-radius: 20px; border: 2px solid #e2e8f0; }
+        .istruzioni-title { font-size: 24px; font-weight: 900; color: #0f172a; margin-bottom: 15px; display: block; }
+        .istruzioni ol { margin: 0; padding-left: 25px; }
+        .istruzioni li { margin-bottom: 12px; }
+        .istruzioni li span.orange { color: #f59e0b; font-weight: 900; }
+        .istruzioni-footer { font-size: 14px; color: #64748b; margin-top: 20px; text-align: center; }
+        
+        /* BOTTONE STAMPA (NASCORTO IN STAMPA) */
+        .btn-stampa { position: fixed; top: 20px; right: 20px; background: #0ea5e9; color: white; border: none; padding: 15px 30px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 100; }
+        .btn-stampa:hover { background: #0284c7; }
+        
+        /* REGOLE SPECIFICHE PER FORZARE LA STAMPA SU 1 PAGINA */
+        @page { size: A4; margin: 0; }
+        @media print {
+            body { background: white; padding: 0; margin: 0; }
+            .a4-page { box-shadow: none; width: 21cm; height: 29.7cm; padding: 1.5cm 2cm; margin: 0; border: none; }
+            .btn-stampa { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <button class="btn-stampa" onclick="window.print()">🖨️ Stampa Cartello</button>
+
+    <div class="a4-page">
+        <h1>Studio Medico</h1>
+        <h2>Dott. Giuseppe Martino</h2>
+
+        <div class="area-title">💼 AREA INFORMATORI</div>
+
+        <div class="methods-container">
+            <div class="box qr">
+                <div class="box-title qr">📷 OPZIONE 1<br>Inquadra il Codice</div>
+                <div class="qr-image-container" id="qrcode-info"></div>
+            </div>
+
+            <div class="box nfc">
+                <div class="box-title nfc">📱 OPZIONE 2<br>Appoggia il Telefono</div>
+                <div class="nfc-target">
+                    APPOGGIA<br>QUI
+                </div>
+            </div>
+        </div>
+
+        <div class="istruzioni">
+            <span class="istruzioni-title">Come segnalare la presenza:</span>
+            <ol>
+                <li>Usa uno dei due metodi qui sopra.</li>
+                <li>Si aprirà l'app dello studio: premi il tasto <b>"SEGNALA PRESENZA"</b>.</li>
+                <li>Mettiti comodo: <b>il tuo telefono suonerà</b> e lo schermo diventerà <span class="orange">ARANCIONE</span> nel momento esatto in cui il medico ti chiamerà.</li>
+            </ol>
+            <p class="istruzioni-footer"><i>(Mantieni la pagina aperta sul telefono mentre aspetti)</i></p>
+        </div>
+    </div>
+
+    <script>
+        window.onload = function() {
+            // Calcola automaticamente l'URL base
+            const currentUrl = window.location.href;
+            const baseUrl = currentUrl.replace('cartello-interno.html', '').split('?')[0];
+            const linkInformatori = baseUrl + "informatore.html?qr=1";
+
+            // Genera il QR Code dentro il div "qrcode-info"
+            new QRCode(document.getElementById("qrcode-info"), {
+                text: linkInformatori,
+                width: 180, // Dimensione adatta al riquadro
+                height: 180,
+                colorDark : "#0f172a", // Colore blu scuro per abbinarsi al tema
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        };
+    </script>
+</body>
+</html>
