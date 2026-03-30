@@ -156,9 +156,21 @@
         async function chiamaInformatoreManuale() {
             if (!confirm("Vuoi FORZARE l'entrata dell'informatore scavalcando la fila automatica?")) return;
             try {
-                await fetch(`${WORKER_URL}/call-info`, { method: 'POST' });
+                // Aggiunto cache: 'no-store' per aggirare forzatamente i blocchi del browser
+                const res = await fetch(`${WORKER_URL}/call-info`, { method: 'POST', cache: 'no-store' });
+                
+                if (!res.ok) {
+                    alert(`❌ ERRORE SERVER: Il Cloudflare Worker ha rifiutato il comando (Codice Errore: ${res.status}). Significa che il nuovo motore non è online.`);
+                    return;
+                }
+                
+                const data = await res.json();
+                alert(`✅ SUCCESSO: Il server ha autorizzato l'Informatore. Informatori in coda rimasti: ${data.informatoriInCoda}`);
                 caricaDati();
-            } catch (e) {}
+                
+            } catch (e) {
+                alert("❌ ERRORE DI CONNESSIONE: " + e.message);
+            }
         }
 
         async function azzera() {
