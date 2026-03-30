@@ -8,200 +8,258 @@
     <link rel="manifest" href="manifest.json">
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
-        :root { 
-            --primary: #0f172a; 
-            --accent: #0ea5e9; 
-            --success: #10b981; 
-            --danger: #f43f5e; 
-            --amber: #f59e0b;
-            --glass: rgba(255, 255, 255, 0.85);
-        }
-        body { 
-            font-family: 'Poppins', sans-serif; 
-            margin: 0; 
-            min-height: 100vh; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            background: #f8fafc;
-            background-image: 
-                radial-gradient(at 0% 0%, rgba(14, 165, 233, 0.15) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.1) 0px, transparent 50%);
-            padding: 20px;
-        }
-        .card { 
-            background: var(--glass); 
-            backdrop-filter: blur(20px); 
-            -webkit-backdrop-filter: blur(20px); 
-            padding: 40px 30px; 
-            border-radius: 35px; 
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.08);
-            width: 100%; 
-            max-width: 400px; 
-            text-align: center;
-        }
-        .numero-attuale { 
-            font-size: 100px; 
-            font-weight: 900; 
-            background: linear-gradient(135deg, #f43f5e, #e11d48);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin: 10px 0;
-            line-height: 1;
-        }
-        .info-box { 
-            background: white; 
-            padding: 30px; 
-            border-radius: 28px; 
-            margin: 25px 0; 
-            border: 1px solid #f1f5f9;
-            transition: all 0.4s ease;
-        }
-        .tuo-numero { font-size: 60px; font-weight: 800; color: var(--accent); }
-        .turno-attivo { 
-            background: linear-gradient(135deg, #10b981, #059669) !important; 
-            transform: scale(1.05);
-            box-shadow: 0 20px 40px rgba(16, 185, 129, 0.3);
-        }
-        .turno-attivo .tuo-numero, .turno-attivo p { color: white !important; }
+        :root { --primary: #1e293b; --accent: #0ea5e9; --success: #10b981; --danger: #ef4444; --amber: #f59e0b; }
+        body { font-family: 'Poppins', sans-serif; margin: 0; padding: 20px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(-45deg, #e0f2fe, #bae6fd, #f0fdf4, #e0f2fe); background-size: 400% 400%; animation: gradientBG 15s ease infinite; color: var(--primary); }
+        @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
         
-        button { 
-            background: var(--primary); 
-            color: white; 
-            border: none; 
-            padding: 22px; 
-            border-radius: 20px; 
-            font-size: 18px; 
-            font-weight: 700; 
-            cursor: pointer; 
-            width: 100%; 
+        #install-tip {
+            position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
+            width: 90%; max-width: 350px; background: #0f172a; color: white;
+            padding: 15px; border-radius: 15px; font-size: 13px; font-weight: 600;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); z-index: 9999;
+            text-align: center; border: 1px solid #38bdf8;
+            animation: slideDown 0.5s ease-out;
         }
+        @keyframes slideDown { from { top: -100px; opacity: 0; } to { top: 15px; opacity: 1; } }
+        .close-tip { position: absolute; right: 10px; top: 5px; cursor: pointer; font-size: 18px; color: #94a3b8; }
+
+        .card { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); padding: 40px 30px; border-radius: 30px; box-shadow: 0 20px 40px rgba(0,0,0,0.05); border: 1px solid rgba(255,255,255,0.8); width: 100%; max-width: 400px; text-align: center; position: relative; }
+        .numero-attuale { font-size: 85px; font-weight: 800; color: var(--danger); margin: 10px 0; line-height: 1; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
+        
+        .info-box { background: rgba(255,255,255,0.9); padding: 25px; border-radius: 25px; margin: 30px 0; transition: all 0.4s ease; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 180px; }
+        .tuo-numero { font-size: 45px; font-weight: 800; color: var(--accent); }
+
+        .turno-attivo { background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important; transform: scale(1.08); box-shadow: 0 15px 30px rgba(16, 185, 129, 0.4) !important; animation: pulseTurno 1.5s infinite; }
+        .turno-attivo #info-box-title { color: white !important; }
+        .turno-attivo .tuo-numero { color: white !important; font-size: 80px; margin: 5px 0; line-height: 1; }
+        .messaggio-turno { display: none; color: white; font-size: 20px; font-weight: 900; text-transform: uppercase; margin-top: 10px; animation: blinker 1s linear infinite; }
+        .turno-attivo .messaggio-turno { display: block !important; }
+        
+        @keyframes blinker { 50% { opacity: 0.3; } }
+        @keyframes pulseTurno { 0% { transform: scale(1.05); } 50% { transform: scale(1.1); } 100% { transform: scale(1.05); } }
+        
+        button { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 20px 30px; border-radius: 50px; font-size: 18px; font-weight: 600; cursor: pointer; width: 100%; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3); transition: 0.3s; }
+        .btn-grigio { background: #94a3b8 !important; box-shadow: none !important; }
+        
+        .avviso-schermo { font-size: 11px; color: #64748b; margin-top: 20px; font-weight: 600; }
+        
+        /* Stili Scanner Modificato */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(5px); align-items: center; justify-content: center; z-index: 1000; }
+        .modal-box { background: white; padding: 30px; border-radius: 24px; text-align: center; width: 85%; max-width: 320px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
         #reader-container { display: none; margin-top: 15px; }
-        #reader { width: 100%; border-radius: 20px; overflow: hidden; border: 2px solid var(--accent); }
+        #reader { width: 100%; border-radius: 15px; overflow: hidden; border: 2px solid var(--accent); background: black; }
+        .btn-annulla { background: var(--danger); color: white; border: none; padding: 12px; border-radius: 12px; font-weight: bold; width: 100%; margin-top: 10px; cursor: pointer; box-shadow: none; }
     </style>
 </head>
 <body>
+
+    <div id="install-tip">
+        <span class="close-tip" onclick="document.getElementById('install-tip').style.display='none'">&times;</span>
+        💡 Per vedere l'app a tutto schermo:<br>
+        Tocca i 3 puntini (o l'icona condividi) e clicca su <b>"Aggiungi a schermata Home"</b>.
+    </div>
+
     <div class="card">
-        <h2 style="margin:0; font-size: 18px; color: #64748b;">Studio Medico</h2>
-        <h1 style="margin:0 0 20px 0; font-size: 24px; font-weight: 800;">Dott. G. Martino</h1>
-        
-        <p style="margin:0; font-size: 14px; font-weight: 600; color: #94a3b8;">In visita ora:</p>
+        <h2>Studio Medico</h2>
+        <h3>Dott. Giuseppe Martino</h3>
+        <p style="margin-bottom: 5px; font-weight: 600;">Attualmente in visita:</p>
         <div class="numero-attuale" id="current-display">--</div>
         
         <div id="registration-section">
             <button id="btn-prendi" onclick="prendiNumero()">PRENDI NUMERO</button>
+            <p id="qr-only-msg" style="display:none; font-size: 13px; color: var(--danger); font-weight: bold; margin-top: 15px;">⚠️ Tocca il tasto sopra per attivare la fotocamera e leggere il codice in studio.</p>
+
             <div id="reader-container">
                 <div id="reader"></div>
-                <button style="background:var(--danger); margin-top:10px; color:white; border:none; padding:10px; border-radius:10px;" onclick="chiudiScanner()">ANNULLA</button>
+                <button class="btn-annulla" onclick="chiudiScanner()">Annulla</button>
             </div>
         </div>
 
         <div id="status-section" style="display:none;">
             <div class="info-box" id="info-box-container">
-                <p id="info-box-title" style="margin:0; font-size: 13px; font-weight: 600; color: #64748b;">IL TUO NUMERO</p>
+                <p id="info-box-title" style="margin: 0; font-size: 14px; font-weight: 600; color: #64748b;">Il tuo turno è il numero</p>
                 <div class="tuo-numero" id="my-number-display">--</div>
-                <p id="msg-ora" style="display:none; margin:10px 0 0 0; font-weight: 900; font-size: 18px; color:white;">ENTRA ORA!</p>
+                <div class="messaggio-turno">È ORA IL TUO TURNO!</div>
             </div>
-            <p id="wait-message" style="font-size: 15px; font-weight: 600; color: #475569;">Ti avviseremo qui.</p>
+            <p id="wait-message" style="font-size: 14px; font-weight: 600; color: #475569;">Ti avviseremo quando entrare.</p>
+            <div class="avviso-schermo">⚠️ Lo schermo resterà attivo da solo.</div>
+        </div>
+    </div>
+
+    <div id="custom-modal" class="modal-overlay">
+        <div class="modal-box">
+            <p id="modal-text" style="font-weight: 600; color: #1e293b;"></p>
+            <button onclick="chiudiModalReset()" style="padding: 12px 25px; border-radius: 12px; border: none; background: var(--danger); color: white; font-weight: bold; cursor: pointer; margin-top: 15px;">Chiudi</button>
         </div>
     </div>
 
     <script>
-        const WORKER_URL = "https://motore-coda.motore-coda-admin.workers.dev";
-        let audioCtx = null;
+        const WORKER_URL = "https://motore-coda.motore-coda-admin.workers.dev"; 
+        let numeroPrecedente = -1;
+        let wakeLock = null;
+        let audioCtx = null; 
         let html5QrCode = null;
-        const isFromQR = new URLSearchParams(window.location.search).has('qr');
 
-        function sbloccaAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
-        function suona() { 
-            if (!audioCtx) return;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1);
-            osc.start(); osc.stop(audioCtx.currentTime + 1);
+        const urlParams = new URLSearchParams(window.location.search);
+        const isFromQR = urlParams.has('qr');
+
+        function sbloccaAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
         }
+
+        async function mantieniSchermoSveglio() {
+            try { if ('wakeLock' in navigator) { wakeLock = await navigator.wakeLock.request('screen'); } } catch (err) {}
+        }
+
+        function mostraModalReset(msg) {
+            document.getElementById('modal-text').innerText = msg;
+            document.getElementById('custom-modal').style.display = 'flex';
+        }
+
+        function chiudiModalReset() {
+            document.getElementById('custom-modal').style.display = 'none';
+            window.location.href = window.location.pathname;
+        }
+
+        function suona() {
+            try {
+                if (!audioCtx) return; 
+                const osc = audioCtx.createOscillator(); 
+                const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1);
+                osc.start(audioCtx.currentTime); 
+                osc.stop(audioCtx.currentTime + 1);
+            } catch(e) { console.log("Audio non supportato"); }
+        }
+
+        // --- LOGICA SCANNER QR INFALLIBILE E CORRETTA ---
+        function apriScanner() {
+            document.getElementById('btn-prendi').style.display = 'none';
+            document.getElementById('qr-only-msg').style.display = 'none';
+            document.getElementById('reader-container').style.display = 'block';
+
+            html5QrCode = new Html5Qrcode("reader");
+            
+            html5QrCode.start(
+                { facingMode: "environment" }, 
+                { fps: 15 },
+                (decodedText) => {
+                    // APPENA LEGGE QUALSIASI QR CODE, SBLOCCA L'APP ISTANTANEAMENTE
+                    html5QrCode.stop().then(() => {
+                        window.location.href = window.location.pathname + "?qr=1";
+                    });
+                },
+                (errorMessage) => {
+                    // Ignora silenziosamente finché non trova il codice
+                }
+            ).catch((err) => {
+                alert("Errore fotocamera. Assicurati di aver dato i permessi al browser.");
+                chiudiScanner();
+            });
+        }
+
+        function chiudiScanner() {
+            if (html5QrCode) {
+                html5QrCode.stop().catch(e => {});
+            }
+            document.getElementById('reader-container').style.display = 'none';
+            document.getElementById('btn-prendi').style.display = 'block';
+            document.getElementById('qr-only-msg').style.display = 'block';
+        }
+        // -------------------------
 
         async function aggiorna() {
             try {
-                const res = await fetch(`${WORKER_URL}/status`);
+                const res = await fetch(`${WORKER_URL}/status`); 
                 const data = await res.json();
+                
                 const savedSession = localStorage.getItem('session_id');
                 const savedTicket = localStorage.getItem('paziente_ticket');
 
                 if (savedSession && savedSession != data.sessionID) {
                     localStorage.clear();
-                    location.href = window.location.pathname;
+                    mostraModalReset("⚠️ La giornata lavorativa è stata azzerata.\nDevi scansionare nuovamente il QR Code in studio per partecipare.");
                     return;
                 }
 
                 document.getElementById('current-display').innerText = data.attuale || 0;
-                const box = document.getElementById('info-box-container');
-                const msg = document.getElementById('msg-ora');
                 const wait = document.getElementById('wait-message');
+                const box = document.getElementById('info-box-container');
 
                 if (data.infoInVisita) {
                     wait.innerHTML = "<b style='color:var(--amber)'>💼 INFORMATORE IN VISITA</b><br>La fila riprenderà tra poco.";
                     box.style.opacity = "0.5";
-                    box.classList.remove('turno-attivo');
-                    msg.style.display = 'none';
                 } else {
                     box.style.opacity = "1";
-                    wait.innerHTML = "Ti avviseremo qui.";
                     if (savedTicket) {
                         const mio = parseInt(savedTicket);
                         if (data.attuale === mio) {
-                            if (!box.classList.contains('turno-attivo')) { suona(); }
+                            if (numeroPrecedente !== data.attuale) { 
+                                suona(); 
+                                document.title = "🔔 TOCCA A TE!"; 
+                            }
                             box.classList.add('turno-attivo');
-                            msg.style.display = 'block';
-                            wait.style.display = 'none';
+                            wait.style.display = "none";
                         } else {
                             box.classList.remove('turno-attivo');
-                            msg.style.display = 'none';
-                            wait.style.display = 'block';
+                            wait.style.display = "block";
+                            if (data.attuale > mio) wait.innerText = "Il tuo turno è passato.";
+                            else wait.innerText = "Ti avviseremo quando entrare.";
                         }
                     }
                 }
+                numeroPrecedente = data.attuale;
             } catch (e) {}
         }
 
-        function apriScanner() {
-            document.getElementById('btn-prendi').style.display = 'none';
-            document.getElementById('reader-container').style.display = 'block';
-            html5QrCode = new Html5Qrcode("reader");
-            html5QrCode.start({ facingMode: "environment" }, { fps: 15 }, () => {
-                html5QrCode.stop().then(() => { window.location.href = window.location.pathname + "?qr=1"; });
-            }).catch(() => chiudiScanner());
-        }
-
-        function chiudiScanner() { if(html5QrCode) html5QrCode.stop(); location.reload(); }
-
         async function prendiNumero() {
-            sbloccaAudio();
-            if (!isFromQR) { apriScanner(); return; }
+            sbloccaAudio(); 
+            
+            if (!isFromQR) {
+                alert("Devi scansionare il QR Code fisico presente in studio per attivare l'app.");
+                return;
+            }
             try {
-                const res = await fetch(`${WORKER_URL}/join`, { method: 'POST' });
+                const res = await fetch(`${WORKER_URL}/join`, { method: 'POST' }); 
                 const data = await res.json();
                 localStorage.setItem('paziente_ticket', data.tuoTurno);
                 localStorage.setItem('session_id', data.sessionID);
                 document.getElementById('my-number-display').innerText = data.tuoTurno;
                 document.getElementById('registration-section').style.display = 'none';
                 document.getElementById('status-section').style.display = 'block';
-                suona();
-            } catch(e) { alert("Errore connessione."); }
+                mantieniSchermoSveglio(); 
+                suona(); 
+            } catch(e) { mostraModalReset("Errore di connessione al server."); }
         }
 
         window.onload = () => {
-            if (localStorage.getItem('paziente_ticket')) {
-                document.getElementById('my-number-display').innerText = localStorage.getItem('paziente_ticket');
+            const savedTicket = localStorage.getItem('paziente_ticket');
+            
+            if (!savedTicket && !isFromQR) {
+                const btn = document.getElementById('btn-prendi');
+                btn.innerText = "📷 INQUADRA QR CODE";
+                btn.classList.add('btn-grigio');
+                btn.onclick = apriScanner;
+                
+                document.getElementById('qr-only-msg').style.display = 'block';
+            } else if (savedTicket) {
+                document.getElementById('my-number-display').innerText = savedTicket;
                 document.getElementById('registration-section').style.display = 'none';
                 document.getElementById('status-section').style.display = 'block';
             }
-            setInterval(aggiorna, 4000);
-            aggiorna();
+            
+            setTimeout(() => {
+                const tip = document.getElementById('install-tip');
+                if (tip) tip.style.display = 'none';
+            }, 10000);
+
+            aggiorna(); 
+            setInterval(aggiorna, 5000);
         };
     </script>
 </body>

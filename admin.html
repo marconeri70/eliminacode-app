@@ -4,113 +4,184 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Console Medico - Dott. Martino</title>
+    
+    <link rel="manifest" href="manifest-admin.json">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #020617; --card: #0f172a; --green: #10b981; --amber: #f59e0b; }
-        body { 
-            font-family: 'Poppins', sans-serif; 
-            background: var(--bg); 
-            color: #f8fafc; 
-            margin: 0; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            min-height: 100vh;
-            background-image: radial-gradient(circle at 50% -20%, #1e293b, var(--bg));
-        }
-        .panel { 
-            background: var(--card); 
-            padding: 40px; 
-            border-radius: 40px; 
-            width: 90%; 
-            max-width: 420px; 
-            text-align: center;
-            border: 1px solid rgba(255,255,255,0.05);
-            box-shadow: 0 40px 80px rgba(0,0,0,0.6);
-        }
-        .numero-attuale { 
-            font-size: 110px; 
-            font-weight: 800; 
-            color: var(--green); 
-            margin: 20px 0;
-            line-height: 1;
-        }
-        .numero-info { color: var(--amber); font-size: 70px; }
-        #suggest-info { 
-            display:none; 
-            background:rgba(245,158,11,0.1); 
-            color:var(--amber); 
-            padding:12px; 
-            border-radius:15px; 
-            font-size:13px; 
-            margin-bottom:20px; 
-            font-weight:600; 
-            border:1px solid var(--amber);
-            animation: fadeIn 0.5s ease;
-        }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        button { 
-            border: none; padding: 22px; border-radius: 20px; font-size: 18px; font-weight: 800; width: 100%; cursor: pointer; margin-bottom: 15px;
-        }
-        .btn-chiama { background: linear-gradient(to bottom, #10b981, #059669); color: white; border-bottom: 5px solid #047857; }
-        .btn-chiama:active { border-bottom: 0; transform: translateY(4px); }
-        input { background: #1e293b; border: 2px solid #334155; color: white; font-size: 30px; text-align: center; padding: 15px; border-radius: 20px; width: 80%; margin-bottom: 20px; }
+        :root { --bg: #0f172a; --panel: rgba(30, 41, 59, 0.8); --neon-green: #10b981; --red: #ef4444; --text: #f8fafc; --amber: #f59e0b; }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--text); margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background-image: radial-gradient(circle at top right, #1e293b 0%, #0f172a 100%); }
+        
+        .panel { background: var(--panel); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); padding: 40px; border-radius: 30px; box-shadow: 0 25px 50px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.05); width: 90%; max-width: 450px; text-align: center; }
+        
+        h2 { margin: 0; font-weight: 800; font-size: 28px; letter-spacing: 1px; }
+        h3 { margin: 5px 0 20px 0; font-weight: 400; font-size: 16px; color: #94a3b8; }
+
+        /* Login */
+        input[type="password"] { font-family: 'Poppins', sans-serif; font-size: 32px; font-weight: 800; text-align: center; letter-spacing: 8px; width: 100%; max-width: 250px; padding: 15px; margin: 20px 0; background: rgba(0,0,0,0.2); border: 2px solid #334155; color: white; border-radius: 15px; outline: none; }
+        input[type="password"]:focus { border-color: var(--neon-green); }
+
+        /* Numerazione */
+        .numero-attuale { font-size: 110px; font-weight: 800; color: var(--neon-green); line-height: 1; margin: 15px 0; text-shadow: 0 0 30px rgba(16, 185, 129, 0.4); transition: 0.3s; }
+        .numero-info { font-size: 70px; color: var(--amber); text-shadow: 0 0 30px rgba(245, 158, 11, 0.4); }
+        
+        /* Stats & Informatori */
+        .stats-container { display: flex; flex-direction: column; gap: 10px; margin-bottom: 25px; }
+        .stats { background: rgba(0,0,0,0.2); padding: 12px; border-radius: 15px; font-size: 14px; font-weight: 600; color: #cbd5e1; }
+        .badge-info { background: var(--amber); color: #422006; padding: 5px 12px; border-radius: 20px; font-size: 12px; display: inline-block; margin-top: 5px; animation: pulseAmber 2s infinite; font-weight: bold; }
+        
+        @keyframes pulseAmber { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+
+        /* Bottoni */
+        button { font-family: 'Poppins', sans-serif; border: none; padding: 18px; border-radius: 20px; font-size: 18px; font-weight: 800; cursor: pointer; width: 100%; color: white; transition: all 0.2s ease; margin-bottom: 12px; }
+        button:active { transform: scale(0.96); }
+        
+        .btn-chiama { background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2); }
+        .btn-info { background: transparent; border: 2px solid var(--amber); color: var(--amber); font-size: 15px; }
+        
+        .row-buttons { display: flex; gap: 10px; }
+        .btn-azzera { background: #334155; font-size: 14px; }
+        .btn-pin { background: rgba(255,255,255,0.1); font-size: 14px; }
+        .btn-login { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
     </style>
 </head>
 <body>
+
     <div class="panel" id="login-screen">
-        <h2 style="margin:0">Console Sblocco</h2>
-        <p style="color:#94a3b8; margin-bottom:25px;">Dott. Giuseppe Martino</p>
+        <h2>Area Riservata</h2>
+        <h3>Dott. Giuseppe Martino</h3>
+        <p style="color: #94a3b8; font-weight: 600;">Inserisci il PIN di sblocco</p>
         <input type="password" id="pin-input" placeholder="••••" inputmode="numeric">
-        <button style="background:#3b82f6; color:white;" onclick="login()">ACCEDI</button>
+        <button class="btn-login" onclick="verificaPin()">ACCEDI</button>
+        <p id="errore-pin" style="color: var(--red); display: none; font-weight: 600; margin-top: 15px;">❌ PIN errato.</p>
     </div>
 
-    <div class="panel" id="app-content" style="display:none;">
-        <div id="suggest-info">⭐ Toccherebbe all'informatore.</div>
-        <h2 style="margin:0; font-size:14px; color:#94a3b8; text-transform:uppercase;">In visita ora</h2>
+    <div class="panel" id="app-content" style="display: none;">
+        <h2>Console Studio</h2>
+        <h3>Dott. Giuseppe Martino</h3>
+        
         <div class="numero-attuale" id="curr">--</div>
-        <p id="stats" style="font-weight:600; color:#cbd5e1; margin-bottom:30px;">Caricamento...</p>
-        <button class="btn-chiama" onclick="next()">🔊 CHIAMA PROSSIMO</button>
-        <button style="background:transparent; color:#64748b; border:1px solid #334155; font-size:13px;" onclick="reset()">🔄 AZZERA SESSIONE</button>
+        
+        <div class="stats-container">
+            <div class="stats" id="info-coda">Sincronizzazione...</div>
+            <div id="info-badge-container" style="display:none;">
+                <div class="badge-info">💼 <span id="count-info">0</span> Informatore/i in attesa</div>
+            </div>
+        </div>
+
+        <button class="btn-chiama" onclick="prossimo()">🔊 CHIAMA PROSSIMO</button>
+        <button id="btn-chiama-info" class="btn-info" onclick="chiamaInformatoreManuale()" style="display:none;">⚠️ FORZA CHIAMATA INFORMATORE ORA</button>
+
+        <div class="row-buttons">
+            <button class="btn-azzera" onclick="azzera()">🔄 Azzera</button>
+            <button class="btn-pin" onclick="cambiaPin()">⚙️ PIN</button>
+        </div>
     </div>
 
     <script>
-        const WORKER_URL = "https://motore-coda.motore-coda-admin.workers.dev";
-        let pin = "";
+        const WORKER_URL = "https://motore-coda.motore-coda-admin.workers.dev"; 
+        let pinAttualeSalvato = ""; 
 
-        async function login() {
-            const p = document.getElementById('pin-input').value;
-            const res = await fetch(`${WORKER_URL}/check-pin`, { method:'POST', body: JSON.stringify({pin:p}) });
-            if ((await res.json()).success) {
-                pin = p;
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('app-content').style.display = 'block';
-                setInterval(load, 4000); load();
-            } else alert("PIN errato");
-        }
-
-        async function load() {
+        async function verificaPin() {
+            const pinInserito = document.getElementById('pin-input').value;
             try {
-                const res = await fetch(`${WORKER_URL}/status`);
-                const d = await res.json();
-                const curr = document.getElementById('curr');
-                const suggest = document.getElementById('suggest-info');
-                
-                if (d.infoInVisita) { 
-                    curr.innerText = "💼 INFO"; 
-                    curr.className = "numero-attuale numero-info"; 
-                    suggest.style.display = 'none';
-                } else { 
-                    curr.innerText = d.ticketAttuale; 
-                    curr.className = "numero-attuale"; 
-                    suggest.style.display = (d.informatoriInCoda > 0 && d.pazientiVistiDaUltimoInfo >= 2) ? 'block' : 'none';
+                const res = await fetch(`${WORKER_URL}/check-pin`, { method: 'POST', body: JSON.stringify({ pin: pinInserito }) });
+                const data = await res.json();
+                if (data.success) {
+                    pinAttualeSalvato = pinInserito;
+                    document.getElementById('login-screen').style.display = 'none';
+                    document.getElementById('app-content').style.display = 'block';
+                    caricaDati(); setInterval(caricaDati, 4000);
+                } else {
+                    document.getElementById('errore-pin').style.display = 'block';
+                    document.getElementById('pin-input').value = ""; 
                 }
-                document.getElementById('stats').innerText = `Attesa: ${d.ultimoTicket - d.ticketAttuale} paz. | ${d.informatoriInCoda} info.`;
-            } catch(e) {}
+            } catch (e) { alert("Errore di connessione."); }
         }
 
-        async function next() { await fetch(`${WORKER_URL}/next`, {method:'POST'}); load(); }
-        async function reset() { if(confirm("Resetto tutto?")) { await fetch(`${WORKER_URL}/reset`, {method:'POST'}); load(); } }
+        async function caricaDati() {
+            try {
+                const res = await fetch(`${WORKER_URL}/status`); 
+                const data = await res.json();
+                
+                const currDisplay = document.getElementById('curr');
+
+                // Se l'informatore è in visita, mostra INFO in arancione, altrimenti il numero del paziente
+                if (data.infoInVisita) {
+                    currDisplay.innerHTML = "💼 INFO";
+                    currDisplay.className = "numero-attuale numero-info";
+                } else {
+                    currDisplay.innerText = data.ticketAttuale || 0;
+                    currDisplay.className = "numero-attuale";
+                }
+                
+                // Statistiche Pazienti
+                const inAttesa = (data.ultimoTicket || 0) - (data.ticketAttuale || 0);
+                document.getElementById('info-coda').innerText = `⏳ Pazienti in attesa: ${inAttesa > 0 ? inAttesa : 0}`;
+
+                // Statistiche Informatori
+                const numInfo = data.informatoriInCoda || 0;
+                const badgeContainer = document.getElementById('info-badge-container');
+                const btnInfo = document.getElementById('btn-chiama-info');
+
+                if (numInfo > 0) {
+                    badgeContainer.style.display = 'block';
+                    document.getElementById('count-info').innerText = numInfo;
+                    
+                    // Mostra il tasto di "Forzatura" solo se l'informatore non è già in studio
+                    if (!data.infoInVisita) {
+                        btnInfo.style.display = 'block';
+                    } else {
+                        btnInfo.style.display = 'none';
+                    }
+                } else {
+                    badgeContainer.style.display = 'none';
+                    btnInfo.style.display = 'none';
+                }
+            } catch (e) {}
+        }
+
+        async function prossimo() {
+            try {
+                // Il server deciderà in automatico se chiamare un paziente o un informatore!
+                const res = await fetch(`${WORKER_URL}/next`, { method: 'POST' });
+                await res.json();
+                caricaDati(); 
+            } catch (e) {}
+        }
+
+        async function chiamaInformatoreManuale() {
+            if (!confirm("Vuoi FORZARE l'entrata dell'informatore scavalcando la fila automatica?")) return;
+            try {
+                await fetch(`${WORKER_URL}/call-info`, { method: 'POST' });
+                caricaDati();
+            } catch (e) {}
+        }
+
+        async function azzera() {
+            if (!confirm("⚠️ Sicuro di voler resettare tutto? Tutti i numeri e le code verranno azzerati.")) return;
+            try {
+                const res = await fetch(`${WORKER_URL}/reset`, { method: 'POST' });
+                await res.json();
+                caricaDati();
+            } catch (e) {}
+        }
+
+        async function cambiaPin() {
+            const nuovoPin = prompt("Inserisci il NUOVO PIN (4 cifre):");
+            if (!nuovoPin || nuovoPin.length < 4) return;
+            try {
+                const res = await fetch(`${WORKER_URL}/change-pin`, { method: 'POST', body: JSON.stringify({ oldPin: pinAttualeSalvato, newPin: nuovoPin }) });
+                const data = await res.json();
+                if (data.success) { pinAttualeSalvato = nuovoPin; alert("✅ PIN cambiato con successo!"); } 
+                else { alert("❌ Errore."); }
+            } catch (e) {}
+        }
+
+        document.getElementById("pin-input").addEventListener("keypress", (e) => { if (e.key === "Enter") verificaPin(); });
     </script>
 </body>
 </html>
