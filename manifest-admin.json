@@ -1,6 +1,6 @@
 {
-  "id": "medico-app",
-  "name": "Console - Dott. Martino",
+  "id": "/admin.html",
+  "name": "Console Eliminacode",
   "short_name": "Console",
   "display": "standalone",
   "start_url": "admin.html",
@@ -8,9 +8,18 @@
   "theme_color": "#0f172a",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/3209/3209109.png",
+      "src": "icons/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
-  ]
+  ],
+  "scope": "./",
+  "description": "Console riservata per la gestione della coda dello studio medico."
 }

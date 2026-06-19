@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Area Informatori - Studio Martino</title>
+    <title>Area Informatori - Studio Medico</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
@@ -28,6 +28,17 @@
         #reader { width: 100%; border-radius: 15px; overflow: hidden; border: 2px solid var(--primary); background: black; }
         .btn-annulla { background: var(--danger); color: white; border: none; padding: 12px; border-radius: 12px; font-weight: bold; width: 100%; margin-top: 10px; cursor: pointer; }
     </style>
+
+    <script src="config.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const cfg = window.APP_CONFIG || {};
+            const studioName = cfg.STUDIO_NAME || 'Studio Medico';
+            const appName = cfg.APP_NAME || 'Eliminacode Studio';
+            document.querySelectorAll('[data-studio-name]').forEach(el => el.textContent = studioName);
+            document.querySelectorAll('[data-app-name]').forEach(el => el.textContent = appName);
+        });
+    </script>
 </head>
 <body>
     <div class="card">
@@ -56,7 +67,7 @@
     </div>
 
     <script>
-    const WORK_URL = "https://motore-coda.motore-coda-admin.workers.dev";
+    const WORK_URL = (window.APP_CONFIG && APP_CONFIG.WORKER_URL) || "https://motore-coda.motore-coda-admin.workers.dev";
     let segnalato = false;
     let chiamataRicevuta = false; 
     let audioCtx = null;
@@ -223,5 +234,14 @@
         setInterval(controllaStato, 3000);
     };
     </script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+
 </body>
 </html>

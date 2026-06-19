@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Console Medico - Dott. Martino</title>
+    <title>Console Eliminacode</title>
     
     <link rel="manifest" href="manifest-admin.json">
     <meta name="theme-color" content="#0f172a">
@@ -47,12 +47,23 @@
         .btn-pin { background: rgba(255,255,255,0.1); font-size: 14px; }
         .btn-login { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
     </style>
+
+    <script src="config.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const cfg = window.APP_CONFIG || {};
+            const studioName = cfg.STUDIO_NAME || 'Studio Medico';
+            const appName = cfg.APP_NAME || 'Eliminacode Studio';
+            document.querySelectorAll('[data-studio-name]').forEach(el => el.textContent = studioName);
+            document.querySelectorAll('[data-app-name]').forEach(el => el.textContent = appName);
+        });
+    </script>
 </head>
 <body>
 
     <div class="panel" id="login-screen">
         <h2>Area Riservata</h2>
-        <h3>Dott. Giuseppe Martino</h3>
+        <h3 data-studio-name>Studio Medico</h3>
         <p style="color: #94a3b8; font-weight: 600;">Inserisci il PIN di sblocco</p>
         <input type="password" id="pin-input" placeholder="••••" inputmode="numeric">
         <button class="btn-login" onclick="verificaPin()">ACCEDI</button>
@@ -61,7 +72,7 @@
 
     <div class="panel" id="app-content" style="display: none;">
         <h2>Console Studio</h2>
-        <h3>Dott. Giuseppe Martino</h3>
+        <h3 data-studio-name>Studio Medico</h3>
         
         <div class="numero-attuale" id="curr">--</div>
         
@@ -82,7 +93,7 @@
     </div>
 
     <script>
-        const WORKER_URL = "https://motore-coda.motore-coda-admin.workers.dev"; 
+        const WORKER_URL = (window.APP_CONFIG && APP_CONFIG.WORKER_URL) || "https://motore-coda.motore-coda-admin.workers.dev"; 
         let pinAttualeSalvato = ""; 
 
         async function verificaPin() {
@@ -195,5 +206,14 @@
 
         document.getElementById("pin-input").addEventListener("keypress", (e) => { if (e.key === "Enter") verificaPin(); });
     </script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+
 </body>
 </html>

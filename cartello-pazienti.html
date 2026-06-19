@@ -166,14 +166,25 @@
             .btn-stampa { display: none; }
         }
     </style>
+
+    <script src="config.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const cfg = window.APP_CONFIG || {};
+            const studioName = cfg.STUDIO_NAME || 'Studio Medico';
+            const appName = cfg.APP_NAME || 'Eliminacode Studio';
+            document.querySelectorAll('[data-studio-name]').forEach(el => el.textContent = studioName);
+            document.querySelectorAll('[data-app-name]').forEach(el => el.textContent = appName);
+        });
+    </script>
 </head>
 <body>
 
     <button class="btn-stampa" onclick="window.print()">🖨️ Stampa Cartello</button>
 
     <div class="a4-page">
-        <h2>Studio Medico</h2>
-        <h1>Dott. Giuseppe Martino</h1>
+        <h2 data-studio-name>Studio Medico</h2>
+        <h1 data-studio-name>Studio Medico</h1>
 
         <div class="area-title">🎫 PRENDI IL TUO NUMERO</div>
 

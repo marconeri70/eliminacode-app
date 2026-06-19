@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generatori QR - Studio Martino</title>
+    <title>Generatori QR - Studio Medico</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
@@ -79,6 +79,17 @@
             .container { gap: 20px; }
         }
     </style>
+
+    <script src="config.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const cfg = window.APP_CONFIG || {};
+            const studioName = cfg.STUDIO_NAME || 'Studio Medico';
+            const appName = cfg.APP_NAME || 'Eliminacode Studio';
+            document.querySelectorAll('[data-studio-name]').forEach(el => el.textContent = studioName);
+            document.querySelectorAll('[data-app-name]').forEach(el => el.textContent = appName);
+        });
+    </script>
 </head>
 <body>
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fila - Dott. Giuseppe Martino</title>
+    <title>Fila - Studio Medico</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="manifest" href="manifest.json">
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
@@ -51,6 +51,17 @@
         #reader { width: 100%; border-radius: 15px; overflow: hidden; border: 2px solid var(--accent); background: black; }
         .btn-annulla { background: var(--danger); color: white; border: none; padding: 12px; border-radius: 12px; font-weight: bold; width: 100%; margin-top: 10px; cursor: pointer; box-shadow: none; }
     </style>
+
+    <script src="config.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const cfg = window.APP_CONFIG || {};
+            const studioName = cfg.STUDIO_NAME || 'Studio Medico';
+            const appName = cfg.APP_NAME || 'Eliminacode Studio';
+            document.querySelectorAll('[data-studio-name]').forEach(el => el.textContent = studioName);
+            document.querySelectorAll('[data-app-name]').forEach(el => el.textContent = appName);
+        });
+    </script>
 </head>
 <body>
 
@@ -61,8 +72,8 @@
     </div>
 
     <div class="card">
-        <h2>Studio Medico</h2>
-        <h3>Dott. Giuseppe Martino</h3>
+        <h2 data-studio-name>Studio Medico</h2>
+        <h3 data-studio-name>Studio Medico</h3>
         <p style="margin-bottom: 5px; font-weight: 600;">Attualmente in visita:</p>
         <div class="numero-attuale" id="current-display">--</div>
         
@@ -95,7 +106,7 @@
     </div>
 
     <script>
-        const WORKER_URL = "https://motore-coda.motore-coda-admin.workers.dev"; 
+        const WORKER_URL = (window.APP_CONFIG && APP_CONFIG.WORKER_URL) || "https://motore-coda.motore-coda-admin.workers.dev"; 
         let numeroPrecedente = -1;
         let wakeLock = null;
         let audioCtx = null; 
@@ -262,5 +273,14 @@
             setInterval(aggiorna, 5000);
         };
     </script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+
 </body>
 </html>
